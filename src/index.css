@@ -2,57 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* D&D Fantasy Campaign Design System - All colors MUST be HSL */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Fantasy color palette */
+    --background: 20 6% 8%;
+    --foreground: 45 20% 85%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 20 8% 12%;
+    --card-foreground: 45 15% 80%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 20 10% 10%;
+    --popover-foreground: 45 20% 85%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 350 65% 25%;
+    --primary-foreground: 45 30% 90%;
+    --primary-glow: 350 70% 35%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 45 25% 20%;
+    --secondary-foreground: 45 20% 85%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 20 8% 15%;
+    --muted-foreground: 45 10% 60%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 80% 45%;
+    --accent-foreground: 20 10% 10%;
+    --accent-glow: 45 85% 55%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 45%;
+    --destructive-foreground: 45 20% 85%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 20 15% 20%;
+    --input: 20 10% 15%;
+    --ring: 350 65% 35%;
+
+    /* Fantasy gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent-glow)));
+    --gradient-dark: linear-gradient(180deg, hsl(var(--background)), hsl(20 8% 5%));
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)), hsl(20 10% 8%));
+
+    /* Fantasy shadows and effects */
+    --shadow-magical: 0 10px 30px -10px hsl(var(--primary) / 0.4);
+    --shadow-golden: 0 5px 20px -5px hsl(var(--accent) / 0.3);
+    --shadow-deep: 0 20px 40px -15px hsl(20 20% 0% / 0.6);
+    --glow-primary: 0 0 20px hsl(var(--primary-glow) / 0.5);
+    --glow-accent: 0 0 15px hsl(var(--accent-glow) / 0.4);
+
+    /* Smooth magical transitions */
+    --transition-magical: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-glow: box-shadow 0.3s ease-in-out;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 20 10% 6%;
+    --sidebar-foreground: 45 20% 85%;
+    --sidebar-primary: 350 65% 25%;
+    --sidebar-primary-foreground: 45 30% 90%;
+    --sidebar-accent: 45 80% 45%;
+    --sidebar-accent-foreground: 20 10% 10%;
+    --sidebar-border: 20 15% 15%;
+    --sidebar-ring: 350 65% 35%;
   }
 
   .dark {
