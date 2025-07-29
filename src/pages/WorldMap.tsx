@@ -1,9 +1,15 @@
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Map, Plus, MapPin, Mountain, Trees, Waves, Crown, Swords } from "lucide-react"
+import { InteractiveMap } from "@/components/map/InteractiveMap"
+import { useAuth } from "@/hooks/useAuth"
+import { Map, Plus, MapPin, Mountain, Trees, Waves, Crown, Swords, Upload } from "lucide-react"
+import { toast } from "sonner"
 
 const WorldMap = () => {
+  const { isAdmin } = useAuth()
+  const [currentMapUrl, setCurrentMapUrl] = useState<string | undefined>(undefined)
   const mapLayers = [
     { name: "Political Boundaries", active: true, color: "text-red-400" },
     { name: "Terrain Features", active: true, color: "text-green-400" },
@@ -104,19 +110,21 @@ const WorldMap = () => {
             Explore and manage your campaign world
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
-            <MapPin className="h-4 w-4 mr-2" />
-            Add Location
-          </Button>
-          <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Region
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
+              <MapPin className="h-4 w-4 mr-2" />
+              Add Location
+            </Button>
+            <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Region
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Map Placeholder */}
+      {/* Interactive Map */}
       <Card className="bg-gradient-card border-border shadow-deep">
         <CardHeader>
           <CardTitle className="text-xl text-accent flex items-center gap-3">
@@ -124,22 +132,21 @@ const WorldMap = () => {
             Interactive World Map
           </CardTitle>
           <CardDescription>
-            Click and drag to explore, use the layer controls to customize your view
+            {isAdmin 
+              ? "Click and drag to explore, zoom with mouse wheel, click to add waypoints" 
+              : "Click and drag to explore, zoom with mouse wheel"
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-muted/30 border-2 border-dashed border-border rounded-lg h-96 flex items-center justify-center">
-            <div className="text-center">
-              <Map className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">Interactive Map Coming Soon</h3>
-              <p className="text-muted-foreground mb-4">
-                Upload your world map or use our integrated map builder
-              </p>
-              <Button className="bg-gradient-accent text-accent-foreground shadow-golden hover:shadow-glow-accent transition-glow">
-                Upload Map Image
-              </Button>
-            </div>
-          </div>
+          <InteractiveMap 
+            mapUrl={currentMapUrl} 
+            onMapUpload={(file) => {
+              const url = URL.createObjectURL(file)
+              setCurrentMapUrl(url)
+              toast.success("Map uploaded successfully!")
+            }}
+          />
         </CardContent>
       </Card>
 

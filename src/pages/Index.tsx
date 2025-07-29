@@ -11,7 +11,7 @@ const Index = () => {
     { title: "World Map", description: "Navigate the realm", icon: Map, href: "/map", color: "bg-gradient-primary" },
     { title: "NPCs Database", description: "Manage characters and allies", icon: UserCheck, href: "/npcs", color: "bg-gradient-accent" },
     { title: "Monster Manual", description: "Browse creatures and foes", icon: Skull, href: "/monsters", color: "bg-gradient-primary" },
-    { title: "Campaign Tools", description: "Sessions, dice, and more", icon: Dice6, href: "/sessions", color: "bg-gradient-accent" },
+    { title: "Campaign Tools", description: "Magic items, weapons, and pets", icon: Dice6, href: "/tools", color: "bg-gradient-accent" },
   ]
 
   return (
