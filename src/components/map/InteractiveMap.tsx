@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { useAuth } from '@/hooks/useAuth'
+
 import { MapPin, Upload, X, Edit } from "lucide-react"
 import { toast } from 'sonner'
 
@@ -24,7 +24,6 @@ interface InteractiveMapProps {
 }
 
 export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
-  const { isAdmin } = useAuth()
   const [waypoints, setWaypoints] = useState<Waypoint[]>([])
   const [selectedWaypoint, setSelectedWaypoint] = useState<Waypoint | null>(null)
   const [isAddingWaypoint, setIsAddingWaypoint] = useState(false)
@@ -37,14 +36,14 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleMapClick = useCallback((e: React.MouseEvent) => {
-    if (!isAdmin || !isAddingWaypoint || !mapRef.current) return
+    if (!isAddingWaypoint || !mapRef.current) return
 
     const rect = mapRef.current.getBoundingClientRect()
     const x = ((e.clientX - rect.left - pan.x) / zoom) / rect.width * 100
     const y = ((e.clientY - rect.top - pan.y) / zoom) / rect.height * 100
 
     setNewWaypoint(prev => ({ ...prev, x, y }))
-  }, [isAdmin, isAddingWaypoint, zoom, pan])
+  }, [isAddingWaypoint, zoom, pan])
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (isAddingWaypoint) return
@@ -128,36 +127,6 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
             Reset View
           </Button>
         </div>
-        
-        {isAdmin && (
-          <div className="flex gap-2">
-            {mapUrl && (
-              <Button
-                variant={isAddingWaypoint ? "default" : "outline"}
-                size="sm"
-                onClick={() => setIsAddingWaypoint(!isAddingWaypoint)}
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                {isAddingWaypoint ? 'Cancel' : 'Add Waypoint'}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Map
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
-        )}
       </div>
 
       {/* Map Container */}
@@ -227,17 +196,8 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
                   <Upload className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
                   <h3 className="text-xl font-semibold text-foreground mb-2">No Map Uploaded</h3>
                   <p className="text-muted-foreground mb-4">
-                    {isAdmin ? "Upload a map image to start adding waypoints" : "No map has been uploaded yet"}
+                    No map has been uploaded yet
                   </p>
-                  {isAdmin && (
-                    <Button 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="bg-gradient-accent text-accent-foreground"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Map Image
-                    </Button>
-                  )}
                 </div>
               </div>
             )}
@@ -252,16 +212,6 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 {selectedWaypoint.title}
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteWaypoint(selectedWaypoint.id)}
-                    className="text-destructive"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
@@ -270,12 +220,6 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
                 <Badge variant="outline">
                   Position: {selectedWaypoint.x.toFixed(1)}%, {selectedWaypoint.y.toFixed(1)}%
                 </Badge>
-                {isAdmin && (
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                )}
               </div>
             </div>
           </DialogContent>
@@ -348,19 +292,6 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
                       </p>
                     </div>
                   </div>
-                  {isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        deleteWaypoint(waypoint.id)
-                      }}
-                      className="text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
               ))}
             </div>

@@ -8,12 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useAuth } from '@/hooks/useAuth'
+
 import { Plus, Wand2, Sword, Heart, Search, Edit, Trash2 } from "lucide-react"
 import { toast } from 'sonner'
 
 const CampaignTools = () => {
-  const { isAdmin } = useAuth()
   const [activeTab, setActiveTab] = useState("magic")
 
   // Sample data - in real app this would come from Supabase
@@ -161,16 +160,6 @@ const CampaignTools = () => {
               {type === 'pet' && `${item.species} • AC ${item.stats?.ac}`}
             </CardDescription>
           </div>
-          {isAdmin && (
-            <div className="flex gap-1">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -225,23 +214,6 @@ const CampaignTools = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search magic items..." className="pl-10" />
             </div>
-            {isAdmin && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-primary text-primary-foreground">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Magic Item
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Magic Item</DialogTitle>
-                    <DialogDescription>Create a new magical item for your campaign.</DialogDescription>
-                  </DialogHeader>
-                  <ItemForm type="magic" onSave={() => {}} />
-                </DialogContent>
-              </Dialog>
-            )}
           </div>
           
           <div className="grid gap-4">
@@ -254,7 +226,7 @@ const CampaignTools = () => {
                   <Wand2 className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
                   <h3 className="text-xl font-semibold text-foreground mb-2">No Magic Items</h3>
                   <p className="text-muted-foreground mb-6">
-                    {isAdmin ? "Start adding magical items to your campaign." : "No magic items have been added yet."}
+                    No magic items have been added yet.
                   </p>
                 </CardContent>
               </Card>
@@ -268,23 +240,6 @@ const CampaignTools = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search weapons..." className="pl-10" />
             </div>
-            {isAdmin && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-primary text-primary-foreground">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Weapon
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Weapon</DialogTitle>
-                    <DialogDescription>Create a new weapon for your campaign.</DialogDescription>
-                  </DialogHeader>
-                  <ItemForm type="weapon" onSave={() => {}} />
-                </DialogContent>
-              </Dialog>
-            )}
           </div>
           
           <div className="grid gap-4">
@@ -297,7 +252,7 @@ const CampaignTools = () => {
                   <Sword className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
                   <h3 className="text-xl font-semibold text-foreground mb-2">No Weapons</h3>
                   <p className="text-muted-foreground mb-6">
-                    {isAdmin ? "Start adding weapons to your campaign arsenal." : "No weapons have been added yet."}
+                    No weapons have been added yet.
                   </p>
                 </CardContent>
               </Card>
@@ -311,23 +266,6 @@ const CampaignTools = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search pets..." className="pl-10" />
             </div>
-            {isAdmin && (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-primary text-primary-foreground">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Pet
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Pet</DialogTitle>
-                    <DialogDescription>Create a new companion for your campaign.</DialogDescription>
-                  </DialogHeader>
-                  <ItemForm type="pet" onSave={() => {}} />
-                </DialogContent>
-              </Dialog>
-            )}
           </div>
           
           <div className="grid gap-4">
@@ -340,7 +278,7 @@ const CampaignTools = () => {
                   <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
                   <h3 className="text-xl font-semibold text-foreground mb-2">No Pets</h3>
                   <p className="text-muted-foreground mb-6">
-                    {isAdmin ? "Start adding companion animals to your campaign." : "No pets have been added yet."}
+                    No pets have been added yet.
                   </p>
                 </CardContent>
               </Card>

@@ -3,12 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { InteractiveMap } from "@/components/map/InteractiveMap"
-import { useAuth } from "@/hooks/useAuth"
 import { Map, Plus, MapPin, Mountain, Trees, Waves, Crown, Swords, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 const WorldMap = () => {
-  const { isAdmin } = useAuth()
   const [currentMapUrl, setCurrentMapUrl] = useState<string | undefined>(undefined)
   const mapLayers = [
     { name: "Political Boundaries", active: true, color: "text-red-400" },
@@ -110,18 +108,6 @@ const WorldMap = () => {
             Explore and manage your campaign world
           </p>
         </div>
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
-              <MapPin className="h-4 w-4 mr-2" />
-              Add Location
-            </Button>
-            <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Region
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Interactive Map */}
@@ -132,10 +118,7 @@ const WorldMap = () => {
             Interactive World Map
           </CardTitle>
           <CardDescription>
-            {isAdmin 
-              ? "Click and drag to explore, zoom with mouse wheel, click to add waypoints" 
-              : "Click and drag to explore, zoom with mouse wheel"
-            }
+            Click and drag to explore, zoom with mouse wheel
           </CardDescription>
         </CardHeader>
         <CardContent>
