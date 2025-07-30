@@ -32,6 +32,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [currentMapUrl, setCurrentMapUrl] = useState(mapUrl)
   const mapRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -94,9 +95,19 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && onMapUpload) {
-      onMapUpload(file)
-      toast.success('Map uploaded successfully!')
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string
+        setCurrentMapUrl(imageUrl)
+        toast.success('Map uploaded successfully!')
+      }
+      reader.readAsDataURL(file)
+      if (onMapUpload) {
+        onMapUpload(file)
+      }
+    } else {
+      toast.error('Please upload a valid image file!')
     }
   }
 
@@ -126,6 +137,31 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
           >
             Reset View
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAddingWaypoint(!isAddingWaypoint)}
+            className={isAddingWaypoint ? "bg-primary text-primary-foreground" : ""}
+          >
+            {isAddingWaypoint ? "Cancel Waypoint" : "Add Waypoint"}
+          </Button>
+        </div>
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {currentMapUrl ? "Change Map" : "Upload Map"}
+          </Button>
         </div>
       </div>
 
@@ -142,7 +178,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
             onWheel={handleWheel}
             onClick={handleMapClick}
           >
-            {mapUrl ? (
+            {currentMapUrl ? (
               <div
                 className="relative"
                 style={{
@@ -151,7 +187,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
                 }}
               >
                 <img 
-                  src={mapUrl} 
+                  src={currentMapUrl} 
                   alt="Campaign Map" 
                   className="w-full h-full object-contain pointer-events-none"
                   draggable={false}

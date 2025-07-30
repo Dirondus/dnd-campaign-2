@@ -1,10 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Users, BookOpen, Map, UserCheck, Skull, Dice6 } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import heroImage from "@/assets/dnd-hero.jpg"
 
 const Index = () => {
+  const navigate = useNavigate()
+  
   const quickActions = [
     { title: "Manage Groups", description: "View and organize your 3 party groups", icon: Users, href: "/groups", color: "bg-gradient-primary" },
     { title: "Explore Lore", description: "Dive into the world's rich history", icon: BookOpen, href: "/lore", color: "bg-gradient-accent" },
@@ -31,7 +33,10 @@ const Index = () => {
             <p className="text-xl text-foreground/80 mb-6">
               Your campaign portal awaits. Manage groups, craft lore, and guide your adventurers through epic tales.
             </p>
-            <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
+            <Button 
+              className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+              onClick={() => navigate('/tools')}
+            >
               Begin Adventure
             </Button>
           </div>

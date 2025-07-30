@@ -15,8 +15,8 @@ import { toast } from 'sonner'
 const CampaignTools = () => {
   const [activeTab, setActiveTab] = useState("magic")
 
-  // Sample data - in real app this would come from Supabase
-  const [magicItems] = useState([
+  // Dynamic state management for all campaign tools
+  const [magicItems, setMagicItems] = useState([
     {
       id: '1',
       name: 'Flame Tongue',
@@ -27,7 +27,7 @@ const CampaignTools = () => {
     }
   ])
 
-  const [weapons] = useState([
+  const [weapons, setWeapons] = useState([
     {
       id: '1',
       name: 'Longsword',
@@ -38,7 +38,7 @@ const CampaignTools = () => {
     }
   ])
 
-  const [pets] = useState([
+  const [pets, setPets] = useState([
     {
       id: '1',
       name: 'Shadow',
@@ -48,21 +48,64 @@ const CampaignTools = () => {
     }
   ])
 
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingItem, setEditingItem] = useState<any>(null)
+  const [formData, setFormData] = useState<any>({})
+
+  const handleAddItem = (type: string) => {
+    setEditingItem(null)
+    setFormData({})
+    setIsDialogOpen(true)
+  }
+
+  const handleSaveItem = (type: string) => {
+    const newItem = {
+      id: Date.now().toString(),
+      ...formData
+    }
+
+    if (type === 'magic') {
+      setMagicItems(prev => [...prev, newItem])
+    } else if (type === 'weapon') {
+      setWeapons(prev => [...prev, newItem])
+    } else if (type === 'pet') {
+      setPets(prev => [...prev, newItem])
+    }
+
+    setFormData({})
+    setIsDialogOpen(false)
+    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully!`)
+  }
+
   const ItemForm = ({ type, onSave }: { type: string, onSave: () => void }) => (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
-        <Input id="name" placeholder={`Enter ${type} name`} />
+        <Input 
+          id="name" 
+          placeholder={`Enter ${type} name`}
+          value={formData.name || ''}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
-        <Textarea id="description" placeholder="Describe the item..." rows={3} />
+        <Textarea 
+          id="description" 
+          placeholder="Describe the item..." 
+          rows={3}
+          value={formData.description || ''}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+        />
       </div>
       {type === 'magic' && (
         <>
           <div className="space-y-2">
             <Label htmlFor="type">Type</Label>
-            <Select>
+            <Select 
+              value={formData.type || ''} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -77,7 +120,10 @@ const CampaignTools = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="rarity">Rarity</Label>
-            <Select>
+            <Select 
+              value={formData.rarity || ''} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, rarity: value }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select rarity" />
               </SelectTrigger>
@@ -96,19 +142,27 @@ const CampaignTools = () => {
         <>
           <div className="space-y-2">
             <Label htmlFor="damage">Damage</Label>
-            <Input id="damage" placeholder="e.g., 1d8 slashing" />
+            <Input 
+              id="damage" 
+              placeholder="e.g., 1d8 slashing"
+              value={formData.damage || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, damage: e.target.value }))}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="weapon-type">Weapon Type</Label>
-            <Select>
+            <Select 
+              value={formData.weaponType || ''} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, weaponType: value }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select weapon type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="simple-melee">Simple Melee</SelectItem>
-                <SelectItem value="simple-ranged">Simple Ranged</SelectItem>
-                <SelectItem value="martial-melee">Martial Melee</SelectItem>
-                <SelectItem value="martial-ranged">Martial Ranged</SelectItem>
+                <SelectItem value="Simple Melee">Simple Melee</SelectItem>
+                <SelectItem value="Simple Ranged">Simple Ranged</SelectItem>
+                <SelectItem value="Martial Melee">Martial Melee</SelectItem>
+                <SelectItem value="Martial Ranged">Martial Ranged</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -118,30 +172,59 @@ const CampaignTools = () => {
         <>
           <div className="space-y-2">
             <Label htmlFor="species">Species</Label>
-            <Input id="species" placeholder="e.g., Wolf, Eagle, Cat" />
+            <Input 
+              id="species" 
+              placeholder="e.g., Wolf, Eagle, Cat"
+              value={formData.species || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, species: e.target.value }))}
+            />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ac">Armor Class</Label>
-              <Input id="ac" type="number" placeholder="13" />
+              <Input 
+                id="ac" 
+                type="number" 
+                placeholder="13"
+                value={formData.ac || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  stats: { ...prev.stats, ac: parseInt(e.target.value) || 0 }
+                }))}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="hp">Hit Points</Label>
-              <Input id="hp" type="number" placeholder="11" />
+              <Input 
+                id="hp" 
+                type="number" 
+                placeholder="11"
+                value={formData.hp || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  stats: { ...prev.stats, hp: parseInt(e.target.value) || 0 }
+                }))}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="speed">Speed</Label>
-              <Input id="speed" placeholder="40 ft" />
+              <Input 
+                id="speed" 
+                placeholder="40 ft"
+                value={formData.speed || ''}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  stats: { ...prev.stats, speed: e.target.value }
+                }))}
+              />
             </div>
           </div>
         </>
       )}
       <Button 
-        onClick={() => {
-          toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} saved!`)
-          onSave()
-        }}
+        onClick={() => handleSaveItem(type)}
         className="w-full bg-gradient-primary text-primary-foreground"
+        disabled={!formData.name}
       >
         Save {type.charAt(0).toUpperCase() + type.slice(1)}
       </Button>
@@ -214,6 +297,21 @@ const CampaignTools = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search magic items..." className="pl-10" />
             </div>
+            <Dialog open={isDialogOpen && activeTab === 'magic'} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleAddItem('magic')} className="bg-gradient-primary text-primary-foreground">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Magic Item
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Magic Item</DialogTitle>
+                  <DialogDescription>Create a new magical item for your campaign</DialogDescription>
+                </DialogHeader>
+                <ItemForm type="magic" onSave={() => setIsDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
           </div>
           
           <div className="grid gap-4">
@@ -240,6 +338,21 @@ const CampaignTools = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search weapons..." className="pl-10" />
             </div>
+            <Dialog open={isDialogOpen && activeTab === 'weapons'} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleAddItem('weapon')} className="bg-gradient-primary text-primary-foreground">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Weapon
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Weapon</DialogTitle>
+                  <DialogDescription>Create a new weapon for your campaign</DialogDescription>
+                </DialogHeader>
+                <ItemForm type="weapon" onSave={() => setIsDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
           </div>
           
           <div className="grid gap-4">
@@ -266,6 +379,21 @@ const CampaignTools = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search pets..." className="pl-10" />
             </div>
+            <Dialog open={isDialogOpen && activeTab === 'pets'} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleAddItem('pet')} className="bg-gradient-primary text-primary-foreground">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Pet
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Pet</DialogTitle>
+                  <DialogDescription>Create a new companion for your campaign</DialogDescription>
+                </DialogHeader>
+                <ItemForm type="pet" onSave={() => setIsDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
           </div>
           
           <div className="grid gap-4">
