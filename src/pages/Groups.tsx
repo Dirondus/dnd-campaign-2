@@ -1,58 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Plus, Crown, Sword, Shield, Heart } from "lucide-react"
+import { Users, Plus, Crown, Sword, Shield, Heart, Trash2 } from "lucide-react"
 import { GroupForm } from "@/components/forms/GroupForm"
 import { SessionsDialog } from "@/components/forms/SessionsDialog"
+import { saveToStorage, loadFromStorage } from "@/lib/storage"
 
 const Groups = () => {
-  const [groups, setGroups] = useState([
-    {
-      id: 1,
-      name: "The Iron Wolves",
-      description: "A group of battle-hardened mercenaries seeking redemption in the northern kingdoms.",
-      members: [
-        { name: "Thrain Ironforge", class: "Fighter", level: 8, role: "Tank" },
-        { name: "Lyra Moonwhisper", class: "Ranger", level: 7, role: "DPS" },
-        { name: "Finn Lightbringer", class: "Cleric", level: 8, role: "Healer" },
-        { name: "Zara Shadowstep", class: "Rogue", level: 7, role: "DPS" }
-      ],
-      status: "Active",
-      lastSession: "2024-01-15"
-    },
-    {
-      id: 2,
-      name: "Arcane Scholars",
-      description: "Young mages and scholars investigating ancient magical mysteries across the realm.",
-      members: [
-        { name: "Elias Starweaver", class: "Wizard", level: 6, role: "DPS" },
-        { name: "Maya Frostborn", class: "Sorcerer", level: 5, role: "DPS" },
-        { name: "Brother Marcus", class: "Cleric", level: 6, role: "Healer" },
-        { name: "Kael Swiftarrow", class: "Ranger", level: 5, role: "DPS" }
-      ],
-      status: "Active",
-      lastSession: "2024-01-12"
-    },
-    {
-      id: 3,
-      name: "The Crimson Tide",
-      description: "Pirates and outcasts sailing the dangerous seas in search of legendary treasure.",
-      members: [
-        { name: "Captain Red", class: "Fighter", level: 9, role: "Tank" },
-        { name: "Siren Melody", class: "Bard", level: 8, role: "Support" },
-        { name: "Blackpowder Pete", class: "Artificer", level: 8, role: "DPS" },
-        { name: "Silent Storm", class: "Monk", level: 8, role: "DPS" }
-      ],
-      status: "On Hiatus",
-      lastSession: "2023-12-20"
-    }
-  ])
+  const [groups, setGroups] = useState(() => loadFromStorage('groups', []))
 
   const [groupFormOpen, setGroupFormOpen] = useState(false)
   const [sessionsDialogOpen, setSessionsDialogOpen] = useState(false)
   const [editingGroup, setEditingGroup] = useState<any>(null)
   const [selectedGroupForSessions, setSelectedGroupForSessions] = useState<any>(null)
+
+  useEffect(() => {
+    saveToStorage('groups', groups)
+  }, [groups])
 
   const handleCreateGroup = (groupData: any) => {
     setGroups(prev => [...prev, groupData])
@@ -75,22 +40,29 @@ const Groups = () => {
     setSessionsDialogOpen(true)
   }
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "Tank": return <Shield className="h-4 w-4" />
-      case "Healer": return <Heart className="h-4 w-4" />
-      case "DPS": return <Sword className="h-4 w-4" />
-      case "Support": return <Crown className="h-4 w-4" />
-      default: return <Users className="h-4 w-4" />
+  const handleDeleteGroup = (groupId: number) => {
+    setGroups(prev => prev.filter(g => g.id !== groupId))
+  }
+
+  const getWeaponIcon = (weapon: string) => {
+    switch (weapon) {
+      case "Sword": return <Sword className="h-4 w-4" />
+      case "Shield": return <Shield className="h-4 w-4" />
+      case "Bow": return <Crown className="h-4 w-4" />
+      case "Staff": return <Crown className="h-4 w-4" />
+      default: return <Sword className="h-4 w-4" />
     }
   }
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "Tank": return "bg-blue-500/20 text-blue-400 border-blue-500/30"
-      case "Healer": return "bg-green-500/20 text-green-400 border-green-500/30"
-      case "DPS": return "bg-red-500/20 text-red-400 border-red-500/30"
-      case "Support": return "bg-purple-500/20 text-purple-400 border-purple-500/30"
+  const getElementColor = (element: string) => {
+    switch (element) {
+      case "Fire": return "bg-red-500/20 text-red-400 border-red-500/30"
+      case "Water": return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+      case "Earth": return "bg-green-500/20 text-green-400 border-green-500/30"
+      case "Wind": return "bg-gray-500/20 text-gray-400 border-gray-500/30"
+      case "Light": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+      case "Dark": return "bg-purple-500/20 text-purple-400 border-purple-500/30"
+      case "Ice": return "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
       default: return "bg-accent/20 text-accent border-accent/30"
     }
   }
@@ -151,18 +123,26 @@ const Groups = () => {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold text-foreground">{member.name}</h4>
-                      <Badge 
-                        variant="outline" 
-                        className={`text-xs ${getRoleColor(member.role)} border`}
-                      >
-                        <span className="flex items-center gap-1">
-                          {getRoleIcon(member.role)}
-                          {member.role}
-                        </span>
-                      </Badge>
+                      <div className="flex gap-1">
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${getElementColor(member.element)} border`}
+                        >
+                          {member.element}
+                        </Badge>
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs border-accent/30"
+                        >
+                          <span className="flex items-center gap-1">
+                            {getWeaponIcon(member.weapon)}
+                            {member.weapon}
+                          </span>
+                        </Badge>
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Level {member.level} {member.class}
+                      Level {member.level} {member.element} User
                     </p>
                   </div>
                 ))}
@@ -181,6 +161,14 @@ const Groups = () => {
                   className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
                 >
                   View Sessions
+                </Button>
+                <Button 
+                  onClick={() => handleDeleteGroup(group.id)}
+                  variant="outline" 
+                  size="sm"
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>

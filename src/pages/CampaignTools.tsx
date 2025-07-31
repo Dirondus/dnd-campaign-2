@@ -15,6 +15,8 @@ import { toast } from 'sonner'
 const CampaignTools = () => {
   const [activeTab, setActiveTab] = useState("magic")
   const [searchTerm, setSearchTerm] = useState('')
+  const [weaponSearchTerm, setWeaponSearchTerm] = useState('')
+  const [petSearchTerm, setPetSearchTerm] = useState('')
 
   // Dynamic state management for all campaign tools
   const [magicItems, setMagicItems] = useState([

@@ -1,5 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
+import { GlobalSearch } from "@/components/GlobalSearch"
+import { useNavigate } from "react-router-dom"
 
 interface LayoutProps {
   children: React.ReactNode

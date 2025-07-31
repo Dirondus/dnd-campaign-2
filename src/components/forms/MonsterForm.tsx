@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,23 +19,55 @@ export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFo
   const [formData, setFormData] = useState({
     name: monster?.name || '',
     type: monster?.type || 'Beast',
-    cr: monster?.cr || '1',
+    size: monster?.size || 'Medium',
+    dangerRating: monster?.dangerRating || '1',
     environment: monster?.environment || '',
     description: monster?.description || '',
-    ac: monster?.ac || 10,
     hp: monster?.hp || 10,
-    speed: monster?.speed || '30 ft',
-    str: monster?.str || 10,
-    dex: monster?.dex || 10,
-    con: monster?.con || 10,
-    int: monster?.int || 10,
-    wis: monster?.wis || 10,
-    cha: monster?.cha || 10
+    strengthDice: monster?.strengthDice || '1d6',
+    magicDice: monster?.magicDice || '1d4'
   })
+  
+  const [elements, setElements] = useState<string[]>(
+    monster?.elements || ['']
+  )
   
   const [abilities, setAbilities] = useState<string[]>(
     monster?.abilities || ['']
   )
+
+  // Reset form when not editing
+  useEffect(() => {
+    if (!monster) {
+      setFormData({
+        name: '',
+        type: 'Beast',
+        size: 'Medium',
+        dangerRating: '1',
+        environment: '',
+        description: '',
+        hp: 10,
+        strengthDice: '1d6',
+        magicDice: '1d4'
+      })
+      setElements([''])
+      setAbilities([''])
+    }
+  }, [monster, open])
+
+  const addElement = () => {
+    setElements([...elements, ''])
+  }
+
+  const removeElement = (index: number) => {
+    setElements(elements.filter((_, i) => i !== index))
+  }
+
+  const updateElement = (index: number, value: string) => {
+    const updated = [...elements]
+    updated[index] = value
+    setElements(updated)
+  }
 
   const addAbility = () => {
     setAbilities([...abilities, ''])
@@ -61,10 +93,12 @@ export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFo
       return
     }
 
+    const validElements = elements.filter(e => e.trim())
     const validAbilities = abilities.filter(a => a.trim())
     
     onSubmit({
       ...formData,
+      elements: validElements,
       abilities: validAbilities,
       lastUsed: monster?.lastUsed || "Never used",
       id: monster?.id || Date.now()
@@ -85,7 +119,7 @@ export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFo
         </DialogHeader>
         
         <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -116,11 +150,27 @@ export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFo
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cr">Challenge Rating</Label>
+              <Label htmlFor="size">Size</Label>
+              <Select value={formData.size} onValueChange={(value) => setFormData(prev => ({ ...prev, size: value }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Tiny">Tiny</SelectItem>
+                  <SelectItem value="Small">Small</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Large">Large</SelectItem>
+                  <SelectItem value="Huge">Huge</SelectItem>
+                  <SelectItem value="Gargantuan">Gargantuan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dangerRating">Danger Rating</Label>
               <Input
-                id="cr"
-                value={formData.cr}
-                onChange={(e) => setFormData(prev => ({ ...prev, cr: e.target.value }))}
+                id="dangerRating"
+                value={formData.dangerRating}
+                onChange={(e) => setFormData(prev => ({ ...prev, dangerRating: e.target.value }))}
                 placeholder="17"
               />
             </div>
@@ -149,15 +199,6 @@ export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFo
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="ac">Armor Class</Label>
-              <Input
-                id="ac"
-                type="number"
-                value={formData.ac}
-                onChange={(e) => setFormData(prev => ({ ...prev, ac: parseInt(e.target.value) || 10 }))}
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="hp">Hit Points</Label>
               <Input
                 id="hp"
@@ -167,76 +208,58 @@ export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFo
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="speed">Speed</Label>
+              <Label htmlFor="strengthDice">Strength Dice</Label>
               <Input
-                id="speed"
-                value={formData.speed}
-                onChange={(e) => setFormData(prev => ({ ...prev, speed: e.target.value }))}
-                placeholder="30 ft"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="str">STR</Label>
-              <Input
-                id="str"
-                type="number"
-                value={formData.str}
-                onChange={(e) => setFormData(prev => ({ ...prev, str: parseInt(e.target.value) || 10 }))}
+                id="strengthDice"
+                value={formData.strengthDice}
+                onChange={(e) => setFormData(prev => ({ ...prev, strengthDice: e.target.value }))}
+                placeholder="1d6"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dex">DEX</Label>
+              <Label htmlFor="magicDice">Magic Dice</Label>
               <Input
-                id="dex"
-                type="number"
-                value={formData.dex}
-                onChange={(e) => setFormData(prev => ({ ...prev, dex: parseInt(e.target.value) || 10 }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="con">CON</Label>
-              <Input
-                id="con"
-                type="number"
-                value={formData.con}
-                onChange={(e) => setFormData(prev => ({ ...prev, con: parseInt(e.target.value) || 10 }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="int">INT</Label>
-              <Input
-                id="int"
-                type="number"
-                value={formData.int}
-                onChange={(e) => setFormData(prev => ({ ...prev, int: parseInt(e.target.value) || 10 }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="wis">WIS</Label>
-              <Input
-                id="wis"
-                type="number"
-                value={formData.wis}
-                onChange={(e) => setFormData(prev => ({ ...prev, wis: parseInt(e.target.value) || 10 }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cha">CHA</Label>
-              <Input
-                id="cha"
-                type="number"
-                value={formData.cha}
-                onChange={(e) => setFormData(prev => ({ ...prev, cha: parseInt(e.target.value) || 10 }))}
+                id="magicDice"
+                value={formData.magicDice}
+                onChange={(e) => setFormData(prev => ({ ...prev, magicDice: e.target.value }))}
+                placeholder="1d4"
               />
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <Label>Special Abilities</Label>
+              <Label>Elements</Label>
+              <Button onClick={addElement} size="sm" variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Element
+              </Button>
+            </div>
+            
+            {elements.map((element, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  value={element}
+                  onChange={(e) => updateElement(index, e.target.value)}
+                  placeholder="Fire, Shadow, etc."
+                  className="flex-1"
+                />
+                <Button
+                  onClick={() => removeElement(index)}
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive"
+                  disabled={elements.length === 1}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label>Abilities</Label>
               <Button onClick={addAbility} size="sm" variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Ability
@@ -248,7 +271,7 @@ export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFo
                 <Input
                   value={ability}
                   onChange={(e) => updateAbility(index, e.target.value)}
-                  placeholder="Shadow Breath"
+                  placeholder="Shadow Breath, Fire Immunity, etc."
                   className="flex-1"
                 />
                 <Button

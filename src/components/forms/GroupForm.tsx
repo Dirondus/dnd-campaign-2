@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,9 +10,10 @@ import { toast } from "sonner"
 
 interface Member {
   name: string
-  class: string
+  element: string
   level: number
-  role: string
+  weapon: string
+  finalLevel?: number
 }
 
 interface GroupFormProps {
@@ -30,11 +31,19 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
   })
   
   const [members, setMembers] = useState<Member[]>(
-    group?.members || [{ name: '', class: 'Fighter', level: 1, role: 'Tank' }]
+    group?.members || [{ name: '', element: 'Fire', level: 1, weapon: 'Sword' }]
   )
 
+  // Reset form when not editing
+  useEffect(() => {
+    if (!group) {
+      setFormData({ name: '', description: '', status: 'Active' })
+      setMembers([{ name: '', element: 'Fire', level: 1, weapon: 'Sword' }])
+    }
+  }, [group, open])
+
   const addMember = () => {
-    setMembers([...members, { name: '', class: 'Fighter', level: 1, role: 'Tank' }])
+    setMembers([...members, { name: '', element: 'Fire', level: 1, weapon: 'Sword' }])
   }
 
   const removeMember = (index: number) => {
@@ -127,7 +136,7 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
             </div>
             
             {members.map((member, index) => (
-              <div key={index} className="grid grid-cols-5 gap-3 p-4 bg-muted/30 rounded-lg">
+              <div key={index} className="grid grid-cols-6 gap-3 p-4 bg-muted/30 rounded-lg">
                 <div className="space-y-1">
                   <Label className="text-xs">Name</Label>
                   <Input
@@ -137,24 +146,44 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Class</Label>
-                  <Select value={member.class} onValueChange={(value) => updateMember(index, 'class', value)}>
+                  <Label className="text-xs">Element</Label>
+                  <Select value={member.element} onValueChange={(value) => updateMember(index, 'element', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Fighter">Fighter</SelectItem>
-                      <SelectItem value="Wizard">Wizard</SelectItem>
-                      <SelectItem value="Cleric">Cleric</SelectItem>
-                      <SelectItem value="Rogue">Rogue</SelectItem>
-                      <SelectItem value="Ranger">Ranger</SelectItem>
-                      <SelectItem value="Barbarian">Barbarian</SelectItem>
-                      <SelectItem value="Bard">Bard</SelectItem>
-                      <SelectItem value="Druid">Druid</SelectItem>
-                      <SelectItem value="Monk">Monk</SelectItem>
-                      <SelectItem value="Paladin">Paladin</SelectItem>
-                      <SelectItem value="Sorcerer">Sorcerer</SelectItem>
-                      <SelectItem value="Warlock">Warlock</SelectItem>
+                      <SelectItem value="Fire">Fire</SelectItem>
+                      <SelectItem value="Water">Water</SelectItem>
+                      <SelectItem value="Earth">Earth</SelectItem>
+                      <SelectItem value="Wind">Wind</SelectItem>
+                      <SelectItem value="Light">Light</SelectItem>
+                      <SelectItem value="Dark">Dark</SelectItem>
+                      <SelectItem value="Ice">Ice</SelectItem>
+                      <SelectItem value="Blood">Blood</SelectItem>
+                      <SelectItem value="Sound">Sound</SelectItem>
+                      <SelectItem value="Sand">Sand</SelectItem>
+                      <SelectItem value="Mist">Mist</SelectItem>
+                      <SelectItem value="Heat">Heat</SelectItem>
+                      <SelectItem value="Lava">Lava</SelectItem>
+                      <SelectItem value="Plant">Plant</SelectItem>
+                      <SelectItem value="Lightning">Lightning</SelectItem>
+                      <SelectItem value="Metal">Metal</SelectItem>
+                      <SelectItem value="Ash">Ash</SelectItem>
+                      <SelectItem value="Soul">Soul</SelectItem>
+                      <SelectItem value="Bone">Bone</SelectItem>
+                      <SelectItem value="Crystal">Crystal</SelectItem>
+                      <SelectItem value="Venom">Venom</SelectItem>
+                      <SelectItem value="Wood">Wood</SelectItem>
+                      <SelectItem value="Plasma">Plasma</SelectItem>
+                      <SelectItem value="Physical">Physical</SelectItem>
+                      <SelectItem value="Gravity">Gravity</SelectItem>
+                      <SelectItem value="Chaos">Chaos</SelectItem>
+                      <SelectItem value="Phase">Phase</SelectItem>
+                      <SelectItem value="Quake">Quake</SelectItem>
+                      <SelectItem value="Nuclear">Nuclear</SelectItem>
+                      <SelectItem value="Sun">Sun</SelectItem>
+                      <SelectItem value="Moon">Moon</SelectItem>
+                      <SelectItem value="Storm">Storm</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -165,22 +194,41 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
                     value={member.level}
                     onChange={(e) => updateMember(index, 'level', parseInt(e.target.value) || 1)}
                     min="1"
-                    max="20"
+                    max="100"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Role</Label>
-                  <Select value={member.role} onValueChange={(value) => updateMember(index, 'role', value)}>
+                  <Label className="text-xs">Weapon</Label>
+                  <Select value={member.weapon} onValueChange={(value) => updateMember(index, 'weapon', value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Tank">Tank</SelectItem>
-                      <SelectItem value="DPS">DPS</SelectItem>
-                      <SelectItem value="Healer">Healer</SelectItem>
-                      <SelectItem value="Support">Support</SelectItem>
+                      <SelectItem value="Sword">Sword</SelectItem>
+                      <SelectItem value="Shield">Shield</SelectItem>
+                      <SelectItem value="Axe">Axe</SelectItem>
+                      <SelectItem value="Gauntlets">Gauntlets</SelectItem>
+                      <SelectItem value="Bow">Bow</SelectItem>
+                      <SelectItem value="Spear">Spear</SelectItem>
+                      <SelectItem value="Mace">Mace</SelectItem>
+                      <SelectItem value="Hammer">Hammer</SelectItem>
+                      <SelectItem value="Nun-chucks">Nun-chucks</SelectItem>
+                      <SelectItem value="Gun">Gun</SelectItem>
+                      <SelectItem value="Scythe">Scythe</SelectItem>
+                      <SelectItem value="Staff">Staff</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Final Level</Label>
+                  <Input
+                    type="number"
+                    value={member.finalLevel || member.level}
+                    onChange={(e) => updateMember(index, 'finalLevel', parseInt(e.target.value) || member.level)}
+                    min={member.level}
+                    max="100"
+                    placeholder="Max level"
+                  />
                 </div>
                 <div className="flex items-end">
                   <Button

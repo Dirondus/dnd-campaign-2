@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Skull, Plus, Search, Zap, Shield, Sword, Crown } from "lucide-react"
+import { Skull, Plus, Search, Zap, Shield, Sword, Crown, Eye, Trash2 } from "lucide-react"
 import { MonsterForm } from "@/components/forms/MonsterForm"
+import { saveToStorage, loadFromStorage } from "@/lib/storage"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 
 const Monsters = () => {
   const monsterTypes = [
@@ -16,46 +19,24 @@ const Monsters = () => {
     { name: "Constructs", count: 0, color: "bg-gray-500/20 text-gray-400 border-gray-500/30", icon: Shield },
   ]
 
-  const challengeRatings = [
-    { range: "CR 0-2", count: 0, description: "Weak creatures, good for low-level encounters" },
-    { range: "CR 3-7", count: 0, description: "Moderate threats for mid-level parties" },
-    { range: "CR 8-15", count: 0, description: "Dangerous foes for experienced adventurers" },
-    { range: "CR 16+", count: 0, description: "Legendary creatures and world-ending threats" },
+  const dangerRatings = [
+    { range: "DR 0-2", count: 0, description: "Weak creatures, good for low-level encounters" },
+    { range: "DR 3-7", count: 0, description: "Moderate threats for mid-level parties" },
+    { range: "DR 8-15", count: 0, description: "Dangerous foes for experienced adventurers" },
+    { range: "DR 16+", count: 0, description: "Legendary creatures and world-ending threats" },
   ]
 
-  const [monsters, setMonsters] = useState([
-    {
-      name: "Ancient Shadow Dragon",
-      type: "Dragon",
-      cr: "17",
-      environment: "Dark caverns, shadow plane",
-      abilities: ["Shadow Breath", "Legendary Actions", "Frightful Presence"],
-      description: "A massive dragon corrupted by shadow magic, capable of manipulating darkness itself.",
-      lastUsed: "Never used"
-    },
-    {
-      name: "Corrupted Treant",
-      type: "Plant",
-      cr: "9", 
-      environment: "Blighted forests",
-      abilities: ["Animate Trees", "Toxic Spores", "Regeneration"],
-      description: "Once a guardian of the forest, now twisted by dark magic into a vengeful entity.",
-      lastUsed: "Never used"
-    },
-    {
-      name: "Void Wraith",
-      type: "Undead",
-      cr: "12",
-      environment: "Abandoned temples, void rifts",
-      abilities: ["Life Drain", "Incorporeal Movement", "Void Magic"],
-      description: "A spirit torn from reality itself, seeking to drag others into the endless void.",
-      lastUsed: "Never used"
-    }
-  ])
+  const [monsters, setMonsters] = useState(() => loadFromStorage('monsters', []))
 
   const [monsterFormOpen, setMonsterFormOpen] = useState(false)
   const [editingMonster, setEditingMonster] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [viewingMonster, setViewingMonster] = useState<any>(null)
+  const [selectedType, setSelectedType] = useState<string>('')
+
+  useEffect(() => {
+    saveToStorage('monsters', monsters)
+  }, [monsters])
 
   const handleCreateMonster = (monsterData: any) => {
     setMonsters(prev => [...prev, { ...monsterData, id: Date.now() }])
@@ -66,11 +47,30 @@ const Monsters = () => {
     setMonsterFormOpen(true)
   }
 
-  const getCRColor = (cr: string) => {
-    const crNum = parseInt(cr)
-    if (crNum <= 2) return "bg-green-500/20 text-green-400 border-green-500/30"
-    if (crNum <= 7) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-    if (crNum <= 15) return "bg-orange-500/20 text-orange-400 border-orange-500/30"
+  const handleUpdateMonster = (updatedMonster: any) => {
+    setMonsters(prev => prev.map(m => 
+      m.id === updatedMonster.id ? updatedMonster : m
+    ))
+    setEditingMonster(null)
+  }
+
+  const handleDeleteMonster = (monsterId: number) => {
+    setMonsters(prev => prev.filter(m => m.id !== monsterId))
+  }
+
+  const handleViewStats = (monster: any) => {
+    setViewingMonster(monster)
+  }
+
+  const handleTypeFilter = (type: string) => {
+    setSelectedType(selectedType === type ? '' : type)
+  }
+
+  const getDangerColor = (dr: string) => {
+    const drNum = parseInt(dr)
+    if (drNum <= 2) return "bg-green-500/20 text-green-400 border-green-500/30"
+    if (drNum <= 7) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
+    if (drNum <= 15) return "bg-orange-500/20 text-orange-400 border-orange-500/30"
     return "bg-red-500/20 text-red-400 border-red-500/30"
   }
 
@@ -120,10 +120,14 @@ const Monsters = () => {
               />
             </div>
             <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
-              Filter by CR
+              Filter by DR
             </Button>
-            <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
-              Filter by Type
+            <Button 
+              variant="outline" 
+              className="border-accent/30 text-accent hover:bg-accent/10"
+              onClick={() => setSelectedType('')}
+            >
+              {selectedType ? `Filter: ${selectedType}` : 'Filter by Type'}
             </Button>
           </div>
         </CardContent>
@@ -134,31 +138,48 @@ const Monsters = () => {
         <h2 className="text-xl font-semibold text-foreground mb-4">Monster Types</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {monsterTypes.map((type) => (
-            <Card key={type.name} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer">
+            <Card 
+              key={type.name} 
+              className={`bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer ${
+                selectedType === type.name ? 'ring-2 ring-accent' : ''
+              }`}
+              onClick={() => handleTypeFilter(type.name)}
+            >
               <CardContent className="p-4 text-center">
                 <div className={`inline-flex p-3 rounded-lg ${type.color} border mb-3`}>
                   <type.icon className="h-5 w-5" />
                 </div>
                 <h3 className="font-semibold text-foreground text-sm mb-1">{type.name}</h3>
-                <p className="text-lg font-bold text-accent">{type.count}</p>
+                <p className="text-lg font-bold text-accent">
+                  {monsters.filter(m => m.type === type.name).length}
+                </p>
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
 
-      {/* Challenge Ratings */}
+      {/* Danger Ratings */}
       <div>
-        <h2 className="text-xl font-semibold text-foreground mb-4">Challenge Ratings</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4">Danger Ratings</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {challengeRatings.map((cr) => (
-            <Card key={cr.range} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer">
+          {dangerRatings.map((dr) => (
+            <Card key={dr.range} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer">
               <CardContent className="p-4">
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold text-foreground">{cr.range}</h3>
-                  <span className="text-2xl font-bold text-accent">{cr.count}</span>
+                  <h3 className="font-semibold text-foreground">{dr.range}</h3>
+                  <span className="text-2xl font-bold text-accent">
+                    {monsters.filter(m => {
+                      const drNum = parseInt(m.dangerRating || '0')
+                      if (dr.range === "DR 0-2") return drNum <= 2
+                      if (dr.range === "DR 3-7") return drNum >= 3 && drNum <= 7
+                      if (dr.range === "DR 8-15") return drNum >= 8 && drNum <= 15
+                      if (dr.range === "DR 16+") return drNum >= 16
+                      return false
+                    }).length}
+                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground">{cr.description}</p>
+                <p className="text-sm text-muted-foreground">{dr.description}</p>
               </CardContent>
             </Card>
           ))}
@@ -191,7 +212,12 @@ const Monsters = () => {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {monsters.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).map((monster, index) => (
+            {monsters
+              .filter(m => 
+                m.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                (selectedType === '' || m.type === selectedType)
+              )
+              .map((monster, index) => (
               <Card key={index} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -205,12 +231,17 @@ const Monsters = () => {
                       </CardDescription>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Badge className={getCRColor(monster.cr)}>
-                        CR {monster.cr}
+                      <Badge className={getDangerColor(monster.dangerRating || '1')}>
+                        DR {monster.dangerRating}
                       </Badge>
                       <Badge className={getTypeColor(monster.type)}>
                         {monster.type}
                       </Badge>
+                      {monster.size && (
+                        <Badge variant="outline" className="text-xs">
+                          {monster.size}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -218,10 +249,22 @@ const Monsters = () => {
                   <p className="text-muted-foreground mb-4 leading-relaxed">
                     {monster.description}
                   </p>
+                  {monster.elements && monster.elements.length > 0 && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-semibold text-foreground mb-2">Elements:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {monster.elements.map((element, i) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            {element}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="mb-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-2">Special Abilities:</h4>
+                    <h4 className="text-sm font-semibold text-foreground mb-2">Abilities:</h4>
                     <div className="flex flex-wrap gap-2">
-                      {monster.abilities.map((ability, i) => (
+                      {monster.abilities?.map((ability, i) => (
                         <Badge key={i} variant="outline" className="text-xs">
                           {ability}
                         </Badge>
@@ -241,11 +284,22 @@ const Monsters = () => {
                       >
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10">
+                      <Button 
+                        onClick={() => handleViewStats(monster)}
+                        variant="outline" 
+                        size="sm" 
+                        className="border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
                         View Stats
                       </Button>
-                      <Button variant="outline" size="sm" className="border-secondary/30 text-secondary hover:bg-secondary/10">
-                        Use in Encounter
+                      <Button 
+                        onClick={() => handleDeleteMonster(monster.id)}
+                        variant="outline" 
+                        size="sm" 
+                        className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -262,9 +316,87 @@ const Monsters = () => {
           setMonsterFormOpen(open)
           if (!open) setEditingMonster(null)
         }}
-        onSubmit={handleCreateMonster}
+        onSubmit={editingMonster ? handleUpdateMonster : handleCreateMonster}
         monster={editingMonster}
       />
+
+      {/* Monster Stats Dialog */}
+      <Dialog open={!!viewingMonster} onOpenChange={() => setViewingMonster(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Skull className="h-5 w-5" />
+              {viewingMonster?.name} - Stats
+            </DialogTitle>
+          </DialogHeader>
+          {viewingMonster && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-semibold">Type:</Label>
+                  <p className="text-muted-foreground">{viewingMonster.type}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Size:</Label>
+                  <p className="text-muted-foreground">{viewingMonster.size}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Danger Rating:</Label>
+                  <p className="text-muted-foreground">{viewingMonster.dangerRating}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Hit Points:</Label>
+                  <p className="text-muted-foreground">{viewingMonster.hp}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Strength Dice:</Label>
+                  <p className="text-muted-foreground">{viewingMonster.strengthDice}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Magic Dice:</Label>
+                  <p className="text-muted-foreground">{viewingMonster.magicDice}</p>
+                </div>
+              </div>
+              
+              {viewingMonster.elements && viewingMonster.elements.length > 0 && (
+                <div>
+                  <Label className="text-sm font-semibold">Elements:</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {viewingMonster.elements.map((element, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {element}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <Label className="text-sm font-semibold">Environment:</Label>
+                <p className="text-muted-foreground">{viewingMonster.environment}</p>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-semibold">Description:</Label>
+                <p className="text-muted-foreground">{viewingMonster.description}</p>
+              </div>
+              
+              {viewingMonster.abilities && viewingMonster.abilities.length > 0 && (
+                <div>
+                  <Label className="text-sm font-semibold">Abilities:</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {viewingMonster.abilities.map((ability, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {ability}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
