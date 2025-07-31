@@ -344,7 +344,12 @@ const CampaignTools = () => {
           <div className="flex justify-between items-center">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search weapons..." className="pl-10" />
+              <Input 
+                placeholder="Search weapons..." 
+                className="pl-10"
+                value={weaponSearchTerm}
+                onChange={(e) => setWeaponSearchTerm(e.target.value)}
+              />
             </div>
             <Dialog open={isDialogOpen && activeTab === 'weapons'} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
@@ -364,7 +369,7 @@ const CampaignTools = () => {
           </div>
           
           <div className="grid gap-4">
-            {weapons.map((item) => (
+            {weapons.filter(item => item.name.toLowerCase().includes(weaponSearchTerm.toLowerCase())).map((item) => (
               <ItemCard key={item.id} item={item} type="weapon" />
             ))}
             {weapons.length === 0 && (
@@ -385,7 +390,12 @@ const CampaignTools = () => {
           <div className="flex justify-between items-center">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search pets..." className="pl-10" />
+              <Input 
+                placeholder="Search pets..." 
+                className="pl-10"
+                value={petSearchTerm}
+                onChange={(e) => setPetSearchTerm(e.target.value)}
+              />
             </div>
             <Dialog open={isDialogOpen && activeTab === 'pets'} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
@@ -405,7 +415,7 @@ const CampaignTools = () => {
           </div>
           
           <div className="grid gap-4">
-            {pets.map((item) => (
+            {pets.filter(item => item.name.toLowerCase().includes(petSearchTerm.toLowerCase())).map((item) => (
               <ItemCard key={item.id} item={item} type="pet" />
             ))}
             {pets.length === 0 && (

@@ -8,6 +8,8 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const navigate = useNavigate()
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-dark">
@@ -20,6 +22,9 @@ export function Layout({ children }: LayoutProps) {
               <h1 className="text-2xl font-bold bg-gradient-accent bg-clip-text text-transparent">
                 D&D Campaign Hub
               </h1>
+            </div>
+            <div className="ml-auto">
+              <GlobalSearch onResultClick={(path) => navigate(path)} />
             </div>
           </header>
           
