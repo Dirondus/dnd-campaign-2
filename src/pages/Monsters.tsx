@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skull, Plus, Search, Zap, Shield, Sword, Crown } from "lucide-react"
+import { MonsterForm } from "@/components/forms/MonsterForm"
 
 const Monsters = () => {
   const monsterTypes = [
@@ -21,7 +23,7 @@ const Monsters = () => {
     { range: "CR 16+", count: 0, description: "Legendary creatures and world-ending threats" },
   ]
 
-  const sampleMonsters = [
+  const [monsters, setMonsters] = useState([
     {
       name: "Ancient Shadow Dragon",
       type: "Dragon",
@@ -49,7 +51,20 @@ const Monsters = () => {
       description: "A spirit torn from reality itself, seeking to drag others into the endless void.",
       lastUsed: "Never used"
     }
-  ]
+  ])
+
+  const [monsterFormOpen, setMonsterFormOpen] = useState(false)
+  const [editingMonster, setEditingMonster] = useState<any>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const handleCreateMonster = (monsterData: any) => {
+    setMonsters(prev => [...prev, { ...monsterData, id: Date.now() }])
+  }
+
+  const handleEditMonster = (monster: any) => {
+    setEditingMonster(monster)
+    setMonsterFormOpen(true)
+  }
 
   const getCRColor = (cr: string) => {
     const crNum = parseInt(cr)
@@ -82,7 +97,10 @@ const Monsters = () => {
             Catalog of creatures and encounters for your campaign
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
+        <Button 
+          onClick={() => setMonsterFormOpen(true)}
+          className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Monster
         </Button>
@@ -97,6 +115,8 @@ const Monsters = () => {
               <Input 
                 placeholder="Search monsters by name, type, or challenge rating..." 
                 className="pl-10 bg-background/50 border-border"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
@@ -151,11 +171,11 @@ const Monsters = () => {
           <Skull className="h-6 w-6 text-accent" />
           <h2 className="text-xl font-semibold text-foreground">All Monsters</h2>
           <Badge variant="outline" className="text-accent border-accent/30">
-            {sampleMonsters.length} Total
+            {monsters.length} Total
           </Badge>
         </div>
 
-        {sampleMonsters.length === 0 ? (
+        {monsters.length === 0 ? (
           <Card className="bg-gradient-card border-border shadow-deep">
             <CardContent className="p-12 text-center">
               <Skull className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -171,7 +191,7 @@ const Monsters = () => {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {sampleMonsters.map((monster, index) => (
+            {monsters.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).map((monster, index) => (
               <Card key={index} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -213,7 +233,12 @@ const Monsters = () => {
                       Last used: {monster.lastUsed}
                     </span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="border-accent/30 text-accent hover:bg-accent/10">
+                      <Button 
+                        onClick={() => handleEditMonster(monster)}
+                        variant="outline" 
+                        size="sm" 
+                        className="border-accent/30 text-accent hover:bg-accent/10"
+                      >
                         Edit
                       </Button>
                       <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10">
@@ -230,6 +255,16 @@ const Monsters = () => {
           </div>
         )}
       </div>
+
+      <MonsterForm
+        open={monsterFormOpen}
+        onOpenChange={(open) => {
+          setMonsterFormOpen(open)
+          if (!open) setEditingMonster(null)
+        }}
+        onSubmit={handleCreateMonster}
+        monster={editingMonster}
+      />
     </div>
   )
 }

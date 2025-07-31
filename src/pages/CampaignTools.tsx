@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 
 const CampaignTools = () => {
   const [activeTab, setActiveTab] = useState("magic")
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Dynamic state management for all campaign tools
   const [magicItems, setMagicItems] = useState([
@@ -295,7 +296,12 @@ const CampaignTools = () => {
           <div className="flex justify-between items-center">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search magic items..." className="pl-10" />
+              <Input 
+                placeholder="Search magic items..." 
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             <Dialog open={isDialogOpen && activeTab === 'magic'} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
@@ -315,7 +321,7 @@ const CampaignTools = () => {
           </div>
           
           <div className="grid gap-4">
-            {magicItems.map((item) => (
+            {magicItems.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => (
               <ItemCard key={item.id} item={item} type="magic" />
             ))}
             {magicItems.length === 0 && (

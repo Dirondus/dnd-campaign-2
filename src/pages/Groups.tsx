@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Plus, Crown, Sword, Shield, Heart } from "lucide-react"
+import { GroupForm } from "@/components/forms/GroupForm"
+import { SessionsDialog } from "@/components/forms/SessionsDialog"
 
 const Groups = () => {
-  const groups = [
+  const [groups, setGroups] = useState([
     {
       id: 1,
       name: "The Iron Wolves",
@@ -44,7 +47,33 @@ const Groups = () => {
       status: "On Hiatus",
       lastSession: "2023-12-20"
     }
-  ]
+  ])
+
+  const [groupFormOpen, setGroupFormOpen] = useState(false)
+  const [sessionsDialogOpen, setSessionsDialogOpen] = useState(false)
+  const [editingGroup, setEditingGroup] = useState<any>(null)
+  const [selectedGroupForSessions, setSelectedGroupForSessions] = useState<any>(null)
+
+  const handleCreateGroup = (groupData: any) => {
+    setGroups(prev => [...prev, groupData])
+  }
+
+  const handleEditGroup = (group: any) => {
+    setEditingGroup(group)
+    setGroupFormOpen(true)
+  }
+
+  const handleUpdateGroup = (updatedGroup: any) => {
+    setGroups(prev => prev.map(group => 
+      group.id === updatedGroup.id ? updatedGroup : group
+    ))
+    setEditingGroup(null)
+  }
+
+  const handleViewSessions = (group: any) => {
+    setSelectedGroupForSessions(group)
+    setSessionsDialogOpen(true)
+  }
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -77,7 +106,10 @@ const Groups = () => {
             Manage your three active adventuring parties
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
+        <Button 
+          onClick={() => setGroupFormOpen(true)}
+          className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+        >
           <Plus className="h-4 w-4 mr-2" />
           New Group
         </Button>
@@ -136,10 +168,18 @@ const Groups = () => {
                 ))}
               </div>
               <div className="mt-6 flex gap-2">
-                <Button variant="outline" className="flex-1 border-accent/30 text-accent hover:bg-accent/10">
+                <Button 
+                  onClick={() => handleEditGroup(group)}
+                  variant="outline" 
+                  className="flex-1 border-accent/30 text-accent hover:bg-accent/10"
+                >
                   Edit Group
                 </Button>
-                <Button variant="outline" className="flex-1 border-primary/30 text-primary hover:bg-primary/10">
+                <Button 
+                  onClick={() => handleViewSessions(group)}
+                  variant="outline" 
+                  className="flex-1 border-primary/30 text-primary hover:bg-primary/10"
+                >
                   View Sessions
                 </Button>
               </div>
@@ -147,6 +187,22 @@ const Groups = () => {
           </Card>
         ))}
       </div>
+
+      <GroupForm
+        open={groupFormOpen}
+        onOpenChange={(open) => {
+          setGroupFormOpen(open)
+          if (!open) setEditingGroup(null)
+        }}
+        onSubmit={editingGroup ? handleUpdateGroup : handleCreateGroup}
+        group={editingGroup}
+      />
+
+      <SessionsDialog
+        open={sessionsDialogOpen}
+        onOpenChange={setSessionsDialogOpen}
+        groupName={selectedGroupForSessions?.name || ''}
+      />
     </div>
   )
 }

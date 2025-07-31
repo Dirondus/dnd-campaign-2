@@ -1,46 +1,95 @@
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { UserCheck, Plus, Search, Crown, Sword, Shield, Users, Star } from "lucide-react"
+import { UserCheck, Plus, Search, Crown, Sword, Shield, Users, Star, Filter } from "lucide-react"
+import { NPCForm } from "@/components/forms/NPCForm"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const NPCs = () => {
-  const npcCategories = [
-    { name: "Allies", count: 0, color: "bg-green-500/20 text-green-400 border-green-500/30", icon: Shield },
-    { name: "Enemies", count: 0, color: "bg-red-500/20 text-red-400 border-red-500/30", icon: Sword },
-    { name: "Neutrals", count: 0, color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Users },
-    { name: "Important", count: 0, color: "bg-purple-500/20 text-purple-400 border-purple-500/30", icon: Star },
-  ]
 
-  const sampleNPCs = [
+  const [npcs, setNpcs] = useState([
     {
+      id: 1,
       name: "Lord Aldric Blackwood",
       title: "Noble of Valdris",
       location: "Blackwood Manor",
       relationship: "Ally",
       importance: "High",
       description: "A powerful noble who secretly funds the resistance against the corrupt council.",
-      lastEncounter: "Never met"
+      lastEncounter: "Never met",
+      background: "Born into nobility, lost family in the war",
+      goals: "Seeks to overthrow the corrupt council",
+      secrets: "Secretly leads the underground resistance"
     },
     {
+      id: 2,
       name: "Granny Weatherby",
       title: "Village Witch",
       location: "Thornwick Village", 
       relationship: "Neutral",
       importance: "Medium",
       description: "An elderly herbalist with knowledge of ancient curses and remedies.",
-      lastEncounter: "Never met"
+      lastEncounter: "Never met",
+      background: "Former court wizard, now in exile",
+      goals: "Protect the village from supernatural threats",
+      secrets: "Knows the location of a powerful artifact"
     },
     {
+      id: 3,
       name: "Captain Ironbeard",
       title: "Pirate Captain",
       location: "The Crimson Tide",
       relationship: "Enemy",
       importance: "High", 
       description: "A ruthless pirate captain seeking the same treasure as the adventurers.",
-      lastEncounter: "Never met"
+      lastEncounter: "Never met",
+      background: "Former naval officer turned pirate",
+      goals: "Find the legendary treasure of Blackwater Bay",
+      secrets: "Has a map showing the treasure's location"
     }
-  ]
+  ])
+
+  const [npcFormOpen, setNpcFormOpen] = useState(false)
+  const [npcDetailsOpen, setNpcDetailsOpen] = useState(false)
+  const [editingNpc, setEditingNpc] = useState<any>(null)
+  const [selectedNpc, setSelectedNpc] = useState<any>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterRelationship, setFilterRelationship] = useState<string | null>(null)
+
+  const handleCreateNpc = (npcData: any) => {
+    setNpcs(prev => [...prev, npcData])
+  }
+
+  const handleEditNpc = (npc: any) => {
+    setEditingNpc(npc)
+    setNpcFormOpen(true)
+  }
+
+  const handleUpdateNpc = (updatedNpc: any) => {
+    setNpcs(prev => prev.map(npc => 
+      npc.id === updatedNpc.id ? updatedNpc : npc
+    ))
+    setEditingNpc(null)
+  }
+
+  const handleViewDetails = (npc: any) => {
+    setSelectedNpc(npc)
+    setNpcDetailsOpen(true)
+  }
+
+  const filteredNpcs = npcs.filter(npc => {
+    const matchesSearch = npc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         npc.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         npc.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesFilter = !filterRelationship || npc.relationship === filterRelationship
+    return matchesSearch && matchesFilter
+  })
+
+  const getCategoryCount = (relationship: string) => {
+    return npcs.filter(npc => npc.relationship === relationship).length
+  }
 
   const getRelationshipColor = (relationship: string) => {
     switch (relationship) {
@@ -71,7 +120,10 @@ const NPCs = () => {
             Manage all non-player characters in your campaign
           </p>
         </div>
-        <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
+        <Button 
+          onClick={() => setNpcFormOpen(true)}
+          className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Create NPC
         </Button>
@@ -86,9 +138,16 @@ const NPCs = () => {
               <Input 
                 placeholder="Search NPCs by name, location, or description..." 
                 className="pl-10 bg-background/50 border-border"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
+            <Button 
+              variant="outline" 
+              className="border-accent/30 text-accent hover:bg-accent/10"
+              onClick={() => setFilterRelationship(filterRelationship ? null : 'Ally')}
+            >
+              <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
           </div>
@@ -97,30 +156,66 @@ const NPCs = () => {
 
       {/* Categories Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {npcCategories.map((category) => (
-          <Card key={category.name} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer">
-            <CardContent className="p-4 text-center">
-              <div className={`inline-flex p-3 rounded-lg ${category.color} border mb-3`}>
-                <category.icon className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-foreground mb-1">{category.name}</h3>
-              <p className="text-2xl font-bold text-accent">{category.count}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card 
+          className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer"
+          onClick={() => setFilterRelationship(filterRelationship === 'Ally' ? null : 'Ally')}
+        >
+          <CardContent className="p-4 text-center">
+            <div className="inline-flex p-3 rounded-lg bg-green-500/20 text-green-400 border-green-500/30 border mb-3">
+              <Shield className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">Allies</h3>
+            <p className="text-2xl font-bold text-accent">{getCategoryCount('Ally')}</p>
+          </CardContent>
+        </Card>
+        <Card 
+          className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer"
+          onClick={() => setFilterRelationship(filterRelationship === 'Enemy' ? null : 'Enemy')}
+        >
+          <CardContent className="p-4 text-center">
+            <div className="inline-flex p-3 rounded-lg bg-red-500/20 text-red-400 border-red-500/30 border mb-3">
+              <Sword className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">Enemies</h3>
+            <p className="text-2xl font-bold text-accent">{getCategoryCount('Enemy')}</p>
+          </CardContent>
+        </Card>
+        <Card 
+          className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer"
+          onClick={() => setFilterRelationship(filterRelationship === 'Neutral' ? null : 'Neutral')}
+        >
+          <CardContent className="p-4 text-center">
+            <div className="inline-flex p-3 rounded-lg bg-blue-500/20 text-blue-400 border-blue-500/30 border mb-3">
+              <Users className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">Neutrals</h3>
+            <p className="text-2xl font-bold text-accent">{getCategoryCount('Neutral')}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer">
+          <CardContent className="p-4 text-center">
+            <div className="inline-flex p-3 rounded-lg bg-purple-500/20 text-purple-400 border-purple-500/30 border mb-3">
+              <Star className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">Important</h3>
+            <p className="text-2xl font-bold text-accent">{npcs.filter(npc => npc.importance === 'High').length}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* NPC List */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
           <UserCheck className="h-6 w-6 text-accent" />
-          <h2 className="text-xl font-semibold text-foreground">All NPCs</h2>
+          <h2 className="text-xl font-semibold text-foreground">
+            {filterRelationship ? `${filterRelationship} NPCs` : 'All NPCs'}
+          </h2>
           <Badge variant="outline" className="text-accent border-accent/30">
-            {sampleNPCs.length} Total
+            {filteredNpcs.length} Total
           </Badge>
         </div>
 
-        {sampleNPCs.length === 0 ? (
+        {filteredNpcs.length === 0 ? (
           <Card className="bg-gradient-card border-border shadow-deep">
             <CardContent className="p-12 text-center">
               <UserCheck className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -128,7 +223,10 @@ const NPCs = () => {
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 Start building your world by creating memorable non-player characters. Add allies, enemies, and neutral characters to bring your campaign to life.
               </p>
-              <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
+              <Button 
+                onClick={() => setNpcFormOpen(true)}
+                className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First NPC
               </Button>
@@ -136,7 +234,7 @@ const NPCs = () => {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {sampleNPCs.map((npc, index) => (
+            {filteredNpcs.map((npc, index) => (
               <Card key={index} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -171,10 +269,26 @@ const NPCs = () => {
                       Last encounter: {npc.lastEncounter}
                     </span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="border-accent/30 text-accent hover:bg-accent/10">
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditNpc(npc)
+                        }}
+                        variant="outline" 
+                        size="sm" 
+                        className="border-accent/30 text-accent hover:bg-accent/10"
+                      >
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" className="border-primary/30 text-primary hover:bg-primary/10">
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewDetails(npc)
+                        }}
+                        variant="outline" 
+                        size="sm" 
+                        className="border-primary/30 text-primary hover:bg-primary/10"
+                      >
                         View Details
                       </Button>
                     </div>
@@ -185,6 +299,94 @@ const NPCs = () => {
           </div>
         )}
       </div>
+
+      <NPCForm
+        open={npcFormOpen}
+        onOpenChange={(open) => {
+          setNpcFormOpen(open)
+          if (!open) setEditingNpc(null)
+        }}
+        onSubmit={editingNpc ? handleUpdateNpc : handleCreateNpc}
+        npc={editingNpc}
+      />
+
+      {/* NPC Details Dialog */}
+      <Dialog open={npcDetailsOpen} onOpenChange={setNpcDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <Crown className="h-6 w-6 text-accent" />
+              {selectedNpc?.name}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedNpc?.title} • {selectedNpc?.location}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedNpc && (
+            <div className="space-y-6">
+              <div className="flex gap-4">
+                <Badge className={getRelationshipColor(selectedNpc.relationship)}>
+                  {selectedNpc.relationship}
+                </Badge>
+                <Badge className={getImportanceColor(selectedNpc.importance)}>
+                  {selectedNpc.importance}
+                </Badge>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-foreground mb-2">Description</h4>
+                  <p className="text-muted-foreground">{selectedNpc.description}</p>
+                </div>
+                
+                {selectedNpc.background && (
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-2">Background</h4>
+                    <p className="text-muted-foreground">{selectedNpc.background}</p>
+                  </div>
+                )}
+                
+                {selectedNpc.goals && (
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-2">Goals & Motivations</h4>
+                    <p className="text-muted-foreground">{selectedNpc.goals}</p>
+                  </div>
+                )}
+                
+                {selectedNpc.secrets && (
+                  <div>
+                    <h4 className="font-semibold text-foreground mb-2">Secrets & Notes</h4>
+                    <p className="text-muted-foreground">{selectedNpc.secrets}</p>
+                  </div>
+                )}
+                
+                <div>
+                  <h4 className="font-semibold text-foreground mb-2">Last Encounter</h4>
+                  <p className="text-muted-foreground">{selectedNpc.lastEncounter}</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => {
+                    setNpcDetailsOpen(false)
+                    handleEditNpc(selectedNpc)
+                  }}
+                  className="flex-1"
+                >
+                  Edit NPC
+                </Button>
+                <Button 
+                  onClick={() => setNpcDetailsOpen(false)}
+                  variant="outline"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
