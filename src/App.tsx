@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
+import { AuthWrapper } from "./components/auth/AuthWrapper";
 import Index from "./pages/Index";
 import Groups from "./pages/Groups";
 import Lore from "./pages/Lore";
@@ -21,19 +22,21 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/lore" element={<Lore />} />
-            <Route path="/map" element={<WorldMap />} />
-            <Route path="/npcs" element={<NPCs />} />
-            <Route path="/monsters" element={<Monsters />} />
-            <Route path="/tools" element={<CampaignTools />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
+        <AuthWrapper>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/groups" element={<Groups />} />
+              <Route path="/lore" element={<Lore />} />
+              <Route path="/map" element={<WorldMap />} />
+              <Route path="/npcs" element={<NPCs />} />
+              <Route path="/monsters" element={<Monsters />} />
+              <Route path="/tools" element={<CampaignTools />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </AuthWrapper>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

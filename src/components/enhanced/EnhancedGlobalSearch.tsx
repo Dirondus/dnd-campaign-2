@@ -1,27 +1,29 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 import { loadFromSupabase } from "@/lib/supabase-storage"
 
 interface SearchResult {
-  type: 'group' | 'lore' | 'npc' | 'monster' | 'magic-item' | 'weapon' | 'pet'
+  type: 'group' | 'lore' | 'npc' | 'monster'
   title: string
   description: string
   path: string
-  id?: string
+  id: string
+  data?: any
 }
 
-interface GlobalSearchProps {
-  onResultClick: (path: string, id?: string, type?: string) => void
+interface EnhancedGlobalSearchProps {
+  onResultClick?: (path: string, searchTerm?: string, itemId?: string) => void
 }
 
-export const GlobalSearch = ({ onResultClick }: GlobalSearchProps) => {
+export const EnhancedGlobalSearch = ({ onResultClick }: EnhancedGlobalSearchProps) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [allData, setAllData] = useState<any>({})
+  const navigate = useNavigate()
 
   useEffect(() => {
-    // Load all data from Supabase
     const loadAllData = async () => {
       try {
         const [groups, lore, npcs, monsters] = await Promise.all([
@@ -58,7 +60,9 @@ export const GlobalSearch = ({ onResultClick }: GlobalSearchProps) => {
           type: 'group',
           title: group.name,
           description: group.description || '',
-          path: '/groups'
+          path: '/groups',
+          id: group.id,
+          data: group
         })
       }
     })
@@ -72,7 +76,9 @@ export const GlobalSearch = ({ onResultClick }: GlobalSearchProps) => {
           type: 'lore',
           title: entry.title,
           description: entry.content?.substring(0, 100) + '...' || '',
-          path: '/lore'
+          path: '/lore',
+          id: entry.id,
+          data: entry
         })
       }
     })
@@ -80,13 +86,15 @@ export const GlobalSearch = ({ onResultClick }: GlobalSearchProps) => {
     // Search NPCs
     allData.npcs?.forEach((npc: any) => {
       if (npc.name.toLowerCase().includes(term) || 
-          npc.role?.toLowerCase().includes(term) ||
+          npc.title?.toLowerCase().includes(term) ||
           npc.location?.toLowerCase().includes(term)) {
         searchResults.push({
           type: 'npc',
           title: npc.name,
-          description: `${npc.role} in ${npc.location}`,
-          path: '/npcs'
+          description: `${npc.title} in ${npc.location}`,
+          path: '/npcs',
+          id: npc.id,
+          data: npc
         })
       }
     })
@@ -99,30 +107,34 @@ export const GlobalSearch = ({ onResultClick }: GlobalSearchProps) => {
         searchResults.push({
           type: 'monster',
           title: monster.name,
-          description: `${monster.type} - Danger ${monster.dangerRating}`,
-          path: '/monsters'
+          description: `${monster.type} - Danger ${monster.danger_rating}`,
+          path: '/monsters',
+          id: monster.id,
+          data: monster
         })
       }
     })
 
-    // Search magic items, weapons, pets
-    // Search magic items, weapons, pets
-    if (allData.magicItems) {
-      allData.magicItems.forEach((item: any) => {
-        if (item.name?.toLowerCase().includes(term) || 
-            item.description?.toLowerCase().includes(term)) {
-          searchResults.push({
-            type: 'magic-item',
-            title: item.name,
-            description: item.description?.substring(0, 100) + '...' || '',
-            path: '/tools'
-          })
+    setResults(searchResults.slice(0, 10))
+  }, [searchTerm, allData])
+
+  const handleResultClick = (result: SearchResult) => {
+    // Navigate to the page and pass search context
+    if (onResultClick) {
+      onResultClick(result.path, result.title, result.id)
+    } else {
+      navigate(result.path, { 
+        state: { 
+          searchFilter: result.title,
+          highlightId: result.id,
+          searchType: result.type
         }
       })
     }
-
-    setResults(searchResults.slice(0, 10)) // Limit to 10 results
-  }, [searchTerm, allData])
+    
+    setSearchTerm('')
+    setResults([])
+  }
 
   return (
     <div className="relative">
@@ -142,11 +154,7 @@ export const GlobalSearch = ({ onResultClick }: GlobalSearchProps) => {
             <div
               key={index}
               className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
-              onClick={() => {
-                onResultClick(result.path)
-                setSearchTerm('')
-                setResults([])
-              }}
+              onClick={() => handleResultClick(result)}
             >
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs px-2 py-1 rounded bg-accent/20 text-accent">
