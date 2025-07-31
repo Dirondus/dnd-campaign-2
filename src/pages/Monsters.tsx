@@ -5,18 +5,19 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skull, Plus, Search, Zap, Shield, Sword, Crown, Eye, Trash2 } from "lucide-react"
 import { MonsterForm } from "@/components/forms/MonsterForm"
-import { saveToStorage, loadFromStorage } from "@/lib/storage"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
 
 const Monsters = () => {
   const monsterTypes = [
-    { name: "Beasts", count: 0, color: "bg-green-500/20 text-green-400 border-green-500/30", icon: Sword },
+    { name: "Beast", count: 0, color: "bg-green-500/20 text-green-400 border-green-500/30", icon: Sword },
     { name: "Undead", count: 0, color: "bg-purple-500/20 text-purple-400 border-purple-500/30", icon: Skull },
-    { name: "Dragons", count: 0, color: "bg-red-500/20 text-red-400 border-red-500/30", icon: Crown },
+    { name: "Dragon", count: 0, color: "bg-red-500/20 text-red-400 border-red-500/30", icon: Crown },
     { name: "Fey", count: 0, color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: Zap },
-    { name: "Fiends", count: 0, color: "bg-orange-500/20 text-orange-400 border-orange-500/30", icon: Skull },
-    { name: "Constructs", count: 0, color: "bg-gray-500/20 text-gray-400 border-gray-500/30", icon: Shield },
+    { name: "Fiend", count: 0, color: "bg-orange-500/20 text-orange-400 border-orange-500/30", icon: Skull },
+    { name: "Construct", count: 0, color: "bg-gray-500/20 text-gray-400 border-gray-500/30", icon: Shield },
   ]
 
   const dangerRatings = [
@@ -26,8 +27,8 @@ const Monsters = () => {
     { range: "DR 16+", count: 0, description: "Legendary creatures and world-ending threats" },
   ]
 
-  const [monsters, setMonsters] = useState(() => loadFromStorage('monsters', []))
-
+  const [monsters, setMonsters] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [monsterFormOpen, setMonsterFormOpen] = useState(false)
   const [editingMonster, setEditingMonster] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,11 +36,50 @@ const Monsters = () => {
   const [selectedType, setSelectedType] = useState<string>('')
 
   useEffect(() => {
-    saveToStorage('monsters', monsters)
-  }, [monsters])
+    fetchMonsters()
+  }, [])
 
-  const handleCreateMonster = (monsterData: any) => {
-    setMonsters(prev => [...prev, { ...monsterData, id: Date.now() }])
+  const fetchMonsters = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('monsters')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setMonsters(data || [])
+    } catch (error: any) {
+      toast.error('Failed to load monsters: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateMonster = async (monsterData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('monsters')
+        .insert([{
+          name: monsterData.name,
+          type: monsterData.type,
+          size: monsterData.size,
+          danger_rating: monsterData.dangerRating,
+          hit_points: monsterData.hp,
+          strength_dice: monsterData.strengthDice,
+          magic_dice: monsterData.magicDice,
+          elements: monsterData.elements || [],
+          description: monsterData.description,
+          abilities: monsterData.abilities || []
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      setMonsters(prev => [data, ...prev])
+      toast.success('Monster created successfully!')
+    } catch (error: any) {
+      toast.error('Failed to create monster: ' + error.message)
+    }
   }
 
   const handleEditMonster = (monster: any) => {
@@ -47,15 +87,52 @@ const Monsters = () => {
     setMonsterFormOpen(true)
   }
 
-  const handleUpdateMonster = (updatedMonster: any) => {
-    setMonsters(prev => prev.map(m => 
-      m.id === updatedMonster.id ? updatedMonster : m
-    ))
-    setEditingMonster(null)
+  const handleUpdateMonster = async (updatedMonster: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('monsters')
+        .update({
+          name: updatedMonster.name,
+          type: updatedMonster.type,
+          size: updatedMonster.size,
+          danger_rating: updatedMonster.dangerRating,
+          hit_points: updatedMonster.hp,
+          strength_dice: updatedMonster.strengthDice,
+          magic_dice: updatedMonster.magicDice,
+          elements: updatedMonster.elements || [],
+          description: updatedMonster.description,
+          abilities: updatedMonster.abilities || []
+        })
+        .eq('id', updatedMonster.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setMonsters(prev => prev.map(m => 
+        m.id === updatedMonster.id ? data : m
+      ))
+      setEditingMonster(null)
+      toast.success('Monster updated successfully!')
+    } catch (error: any) {
+      toast.error('Failed to update monster: ' + error.message)
+    }
   }
 
-  const handleDeleteMonster = (monsterId: number) => {
-    setMonsters(prev => prev.filter(m => m.id !== monsterId))
+  const handleDeleteMonster = async (monsterId: string) => {
+    if (!confirm('Are you sure you want to delete this monster?')) return
+
+    try {
+      const { error } = await supabase
+        .from('monsters')
+        .delete()
+        .eq('id', monsterId)
+
+      if (error) throw error
+      setMonsters(prev => prev.filter(m => m.id !== monsterId))
+      toast.success('Monster deleted successfully!')
+    } catch (error: any) {
+      toast.error('Failed to delete monster: ' + error.message)
+    }
   }
 
   const handleViewStats = (monster: any) => {
@@ -67,7 +144,7 @@ const Monsters = () => {
   }
 
   const getDangerColor = (dr: string) => {
-    const drNum = parseInt(dr)
+    const drNum = parseInt(dr || '0')
     if (drNum <= 2) return "bg-green-500/20 text-green-400 border-green-500/30"
     if (drNum <= 7) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
     if (drNum <= 15) return "bg-orange-500/20 text-orange-400 border-orange-500/30"
@@ -75,7 +152,7 @@ const Monsters = () => {
   }
 
   const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case "dragon": return "bg-red-500/20 text-red-400 border-red-500/30"
       case "undead": return "bg-purple-500/20 text-purple-400 border-purple-500/30"
       case "beast": return "bg-green-500/20 text-green-400 border-green-500/30"
@@ -84,6 +161,14 @@ const Monsters = () => {
       case "plant": return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
       default: return "bg-accent/20 text-accent border-accent/30"
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+      </div>
+    )
   }
 
   return (
@@ -119,9 +204,6 @@ const Monsters = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
-              Filter by DR
-            </Button>
             <Button 
               variant="outline" 
               className="border-accent/30 text-accent hover:bg-accent/10"
@@ -170,7 +252,7 @@ const Monsters = () => {
                   <h3 className="font-semibold text-foreground">{dr.range}</h3>
                   <span className="text-2xl font-bold text-accent">
                     {monsters.filter(m => {
-                      const drNum = parseInt(m.dangerRating || '0')
+                      const drNum = parseInt(m.danger_rating || '0')
                       if (dr.range === "DR 0-2") return drNum <= 2
                       if (dr.range === "DR 3-7") return drNum >= 3 && drNum <= 7
                       if (dr.range === "DR 8-15") return drNum >= 8 && drNum <= 15
@@ -204,7 +286,10 @@ const Monsters = () => {
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 Build your bestiary by adding creatures, monsters, and encounters. Create custom creatures or import from official sources.
               </p>
-              <Button className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow">
+              <Button 
+                onClick={() => setMonsterFormOpen(true)}
+                className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Monster
               </Button>
@@ -214,11 +299,11 @@ const Monsters = () => {
           <div className="grid gap-4">
             {monsters
               .filter(m => 
-                m.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                m.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
                 (selectedType === '' || m.type === selectedType)
               )
-              .map((monster, index) => (
-              <Card key={index} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
+              .map((monster) => (
+              <Card key={monster.id} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -227,21 +312,16 @@ const Monsters = () => {
                         {monster.name}
                       </CardTitle>
                       <CardDescription className="text-muted-foreground mt-1">
-                        📍 {monster.environment}
+                        {monster.size} {monster.type}
                       </CardDescription>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Badge className={getDangerColor(monster.dangerRating || '1')}>
-                        DR {monster.dangerRating}
+                      <Badge className={getDangerColor(monster.danger_rating)}>
+                        DR {monster.danger_rating || '0'}
                       </Badge>
                       <Badge className={getTypeColor(monster.type)}>
                         {monster.type}
                       </Badge>
-                      {monster.size && (
-                        <Badge variant="outline" className="text-xs">
-                          {monster.size}
-                        </Badge>
-                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -253,7 +333,7 @@ const Monsters = () => {
                     <div className="mb-3">
                       <h4 className="text-sm font-semibold text-foreground mb-2">Elements:</h4>
                       <div className="flex flex-wrap gap-2">
-                        {monster.elements.map((element, i) => (
+                        {monster.elements.map((element: string, i: number) => (
                           <Badge key={i} variant="outline" className="text-xs">
                             {element}
                           </Badge>
@@ -264,7 +344,7 @@ const Monsters = () => {
                   <div className="mb-4">
                     <h4 className="text-sm font-semibold text-foreground mb-2">Abilities:</h4>
                     <div className="flex flex-wrap gap-2">
-                      {monster.abilities?.map((ability, i) => (
+                      {monster.abilities?.map((ability: string, i: number) => (
                         <Badge key={i} variant="outline" className="text-xs">
                           {ability}
                         </Badge>
@@ -273,7 +353,7 @@ const Monsters = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
-                      Last used: {monster.lastUsed}
+                      Created: {new Date(monster.created_at).toLocaleDateString()}
                     </span>
                     <div className="flex gap-2">
                       <Button 
@@ -342,19 +422,19 @@ const Monsters = () => {
                 </div>
                 <div>
                   <Label className="text-sm font-semibold">Danger Rating:</Label>
-                  <p className="text-muted-foreground">{viewingMonster.dangerRating}</p>
+                  <p className="text-muted-foreground">{viewingMonster.danger_rating}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-semibold">Hit Points:</Label>
-                  <p className="text-muted-foreground">{viewingMonster.hp}</p>
+                  <p className="text-muted-foreground">{viewingMonster.hit_points}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-semibold">Strength Dice:</Label>
-                  <p className="text-muted-foreground">{viewingMonster.strengthDice}</p>
+                  <p className="text-muted-foreground">{viewingMonster.strength_dice}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-semibold">Magic Dice:</Label>
-                  <p className="text-muted-foreground">{viewingMonster.magicDice}</p>
+                  <p className="text-muted-foreground">{viewingMonster.magic_dice}</p>
                 </div>
               </div>
               
@@ -362,7 +442,7 @@ const Monsters = () => {
                 <div>
                   <Label className="text-sm font-semibold">Elements:</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {viewingMonster.elements.map((element, i) => (
+                    {viewingMonster.elements.map((element: string, i: number) => (
                       <Badge key={i} variant="outline" className="text-xs">
                         {element}
                       </Badge>
@@ -370,11 +450,6 @@ const Monsters = () => {
                   </div>
                 </div>
               )}
-              
-              <div>
-                <Label className="text-sm font-semibold">Environment:</Label>
-                <p className="text-muted-foreground">{viewingMonster.environment}</p>
-              </div>
               
               <div>
                 <Label className="text-sm font-semibold">Description:</Label>
@@ -385,7 +460,7 @@ const Monsters = () => {
                 <div>
                   <Label className="text-sm font-semibold">Abilities:</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {viewingMonster.abilities.map((ability, i) => (
+                    {viewingMonster.abilities.map((ability: string, i: number) => (
                       <Badge key={i} variant="outline" className="text-xs">
                         {ability}
                       </Badge>

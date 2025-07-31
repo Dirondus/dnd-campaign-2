@@ -1,13 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Plus, Scroll, Landmark, Globe, Crown, Clock, Layers } from "lucide-react"
+import { BookOpen, Plus, Scroll, Landmark, Globe, Crown, Clock, Layers, Trash2 } from "lucide-react"
 import { LoreForm } from "@/components/forms/LoreForm"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 
 const Lore = () => {
@@ -15,91 +13,77 @@ const Lore = () => {
     {
       title: "Kingdoms & Nations",
       icon: Crown,
-      count: 5,
       description: "Political entities and their histories",
       color: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-      entries: [
-        "The Northern Kingdom of Valdris",
-        "The Maritime Republic of Coralis", 
-        "The Desert Emirates of Qadesh"
-      ]
     },
     {
       title: "Ancient History",
       icon: Scroll,
-      count: 8,
       description: "Events that shaped the world",
       color: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-      entries: [
-        "The Great Sundering",
-        "War of the Five Crowns",
-        "The Dragon Wars"
-      ]
     },
     {
       title: "Locations & Places",
       icon: Landmark,
-      count: 12,
       description: "Important cities, dungeons, and landmarks",
       color: "bg-green-500/20 text-green-400 border-green-500/30",
-      entries: [
-        "The Floating City of Aerion",
-        "Darkwood Forest",
-        "The Sunken Temple of Tides"
-      ]
     },
     {
       title: "World Mechanics",
       icon: Globe,
-      count: 3,
       description: "Magic systems, cosmology, and natural laws",
       color: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-      entries: [
-        "The Weave and Magic",
-        "Planar Geography",
-        "Divine Pantheon"
-      ]
     }
   ]
 
-  const [loreEntries, setLoreEntries] = useState([
-    {
-      id: 1,
-      title: "The Whispering Woods",
-      category: "Locations",
-      summary: "A haunted forest where trees remember ancient secrets and speak to those who listen...",
-      lastUpdated: "2024-01-15",
-      content: "The Whispering Woods stretch for hundreds of miles across the northern border...",
-      tags: ["forest", "haunted", "ancient", "secrets"]
-    },
-    {
-      id: 2,
-      title: "Order of the Silver Dawn",
-      category: "Organizations", 
-      summary: "A secretive order of paladins dedicated to protecting the realm from otherworldly threats...",
-      lastUpdated: "2024-01-12",
-      content: "Founded three centuries ago after the first planar incursion...",
-      tags: ["order", "paladins", "protection", "secret"]
-    },
-    {
-      id: 3,
-      title: "The Convergence War",
-      category: "History",
-      summary: "The devastating conflict when multiple planes of existence briefly merged...",
-      lastUpdated: "2024-01-10",
-      content: "The Convergence War began when arcane experiments went catastrophically wrong...",
-      tags: ["war", "planes", "convergence", "catastrophe"]
-    }
-  ])
-
+  const [loreEntries, setLoreEntries] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [loreFormOpen, setLoreFormOpen] = useState(false)
   const [timelineBuilderOpen, setTimelineBuilderOpen] = useState(false)
   const [worldBuilderOpen, setWorldBuilderOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [editingEntry, setEditingEntry] = useState<any>(null)
 
-  const handleCreateEntry = (entryData: any) => {
-    setLoreEntries(prev => [...prev, entryData])
+  useEffect(() => {
+    fetchLoreEntries()
+  }, [])
+
+  const fetchLoreEntries = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('lore_entries')
+        .select('*')
+        .order('updated_at', { ascending: false })
+
+      if (error) throw error
+      setLoreEntries(data || [])
+    } catch (error: any) {
+      toast.error('Failed to load lore entries: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateEntry = async (entryData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('lore_entries')
+        .insert([{
+          title: entryData.title,
+          category: entryData.category,
+          summary: entryData.summary,
+          content: entryData.content,
+          tags: entryData.tags || []
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      setLoreEntries(prev => [data, ...prev])
+      toast.success('Lore entry created successfully!')
+    } catch (error: any) {
+      toast.error('Failed to create lore entry: ' + error.message)
+    }
   }
 
   const handleEditEntry = (entry: any) => {
@@ -107,11 +91,47 @@ const Lore = () => {
     setLoreFormOpen(true)
   }
 
-  const handleUpdateEntry = (updatedEntry: any) => {
-    setLoreEntries(prev => prev.map(entry => 
-      entry.id === updatedEntry.id ? updatedEntry : entry
-    ))
-    setEditingEntry(null)
+  const handleUpdateEntry = async (updatedEntry: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('lore_entries')
+        .update({
+          title: updatedEntry.title,
+          category: updatedEntry.category,
+          summary: updatedEntry.summary,
+          content: updatedEntry.content,
+          tags: updatedEntry.tags || []
+        })
+        .eq('id', updatedEntry.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setLoreEntries(prev => prev.map(entry => 
+        entry.id === updatedEntry.id ? data : entry
+      ))
+      setEditingEntry(null)
+      toast.success('Lore entry updated successfully!')
+    } catch (error: any) {
+      toast.error('Failed to update lore entry: ' + error.message)
+    }
+  }
+
+  const handleDeleteEntry = async (entryId: string) => {
+    if (!confirm('Are you sure you want to delete this lore entry?')) return
+
+    try {
+      const { error } = await supabase
+        .from('lore_entries')
+        .delete()
+        .eq('id', entryId)
+
+      if (error) throw error
+      setLoreEntries(prev => prev.filter(entry => entry.id !== entryId))
+      toast.success('Lore entry deleted successfully!')
+    } catch (error: any) {
+      toast.error('Failed to delete lore entry: ' + error.message)
+    }
   }
 
   const filteredEntries = selectedCategory 
@@ -122,6 +142,14 @@ const Lore = () => {
     return loreEntries.filter(entry => entry.category === categoryTitle || 
       (categoryTitle === "Kingdoms & Nations" && entry.category === "Kingdoms") ||
       (categoryTitle === "Locations & Places" && entry.category === "Locations"))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+      </div>
+    )
   }
 
   return (
@@ -215,11 +243,10 @@ const Lore = () => {
               </Button>
             </div>
           ) : (
-            filteredEntries.map((entry, index) => (
+            filteredEntries.map((entry) => (
               <div 
                 key={entry.id}
                 className="p-4 rounded-lg bg-muted/50 border border-border hover:bg-muted/70 transition-magical cursor-pointer"
-                onClick={() => handleEditEntry(entry)}
               >
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-semibold text-foreground hover:text-accent transition-magical">
@@ -230,14 +257,38 @@ const Lore = () => {
                       {entry.category}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {entry.lastUpdated}
+                      {new Date(entry.updated_at).toLocaleDateString()}
                     </span>
+                    <div className="flex gap-1">
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditEntry(entry)
+                        }}
+                        variant="outline" 
+                        size="sm" 
+                        className="h-6 w-6 p-0 border-accent/30 text-accent hover:bg-accent/10"
+                      >
+                        ✏
+                      </Button>
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteEntry(entry.id)
+                        }}
+                        variant="outline" 
+                        size="sm" 
+                        className="h-6 w-6 p-0 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-2">
                   {entry.summary}
                 </p>
-                {entry.tags && (
+                {entry.tags && entry.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {entry.tags.map((tag: string, tagIndex: number) => (
                       <Badge key={tagIndex} variant="outline" className="text-xs">

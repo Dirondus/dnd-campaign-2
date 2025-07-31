@@ -136,13 +136,13 @@ export const AuthWrapper = ({ children }: AuthWrapperProps) => {
   }
 
   return (
-    <div className="relative">
-      <div className="absolute top-4 right-4 z-50">
+    <>
+      <div className="fixed top-4 right-4 z-50">
         <Button variant="outline" size="sm" onClick={handleSignOut}>
           Sign Out
         </Button>
       </div>
       {children}
-    </div>
+    </>
   )
 }

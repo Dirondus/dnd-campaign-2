@@ -1,56 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { UserCheck, Plus, Search, Crown, Sword, Shield, Users, Star, Filter } from "lucide-react"
+import { UserCheck, Plus, Search, Crown, Sword, Shield, Users, Star, Filter, Trash2 } from "lucide-react"
 import { NPCForm } from "@/components/forms/NPCForm"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
 
 const NPCs = () => {
-
-  const [npcs, setNpcs] = useState([
-    {
-      id: 1,
-      name: "Lord Aldric Blackwood",
-      title: "Noble of Valdris",
-      location: "Blackwood Manor",
-      relationship: "Ally",
-      importance: "High",
-      description: "A powerful noble who secretly funds the resistance against the corrupt council.",
-      lastEncounter: "Never met",
-      background: "Born into nobility, lost family in the war",
-      goals: "Seeks to overthrow the corrupt council",
-      secrets: "Secretly leads the underground resistance"
-    },
-    {
-      id: 2,
-      name: "Granny Weatherby",
-      title: "Village Witch",
-      location: "Thornwick Village", 
-      relationship: "Neutral",
-      importance: "Medium",
-      description: "An elderly herbalist with knowledge of ancient curses and remedies.",
-      lastEncounter: "Never met",
-      background: "Former court wizard, now in exile",
-      goals: "Protect the village from supernatural threats",
-      secrets: "Knows the location of a powerful artifact"
-    },
-    {
-      id: 3,
-      name: "Captain Ironbeard",
-      title: "Pirate Captain",
-      location: "The Crimson Tide",
-      relationship: "Enemy",
-      importance: "High", 
-      description: "A ruthless pirate captain seeking the same treasure as the adventurers.",
-      lastEncounter: "Never met",
-      background: "Former naval officer turned pirate",
-      goals: "Find the legendary treasure of Blackwater Bay",
-      secrets: "Has a map showing the treasure's location"
-    }
-  ])
-
+  const [npcs, setNpcs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [npcFormOpen, setNpcFormOpen] = useState(false)
   const [npcDetailsOpen, setNpcDetailsOpen] = useState(false)
   const [editingNpc, setEditingNpc] = useState<any>(null)
@@ -58,8 +19,50 @@ const NPCs = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRelationship, setFilterRelationship] = useState<string | null>(null)
 
-  const handleCreateNpc = (npcData: any) => {
-    setNpcs(prev => [...prev, npcData])
+  useEffect(() => {
+    fetchNpcs()
+  }, [])
+
+  const fetchNpcs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('npcs')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setNpcs(data || [])
+    } catch (error: any) {
+      toast.error('Failed to load NPCs: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateNpc = async (npcData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('npcs')
+        .insert([{
+          name: npcData.name,
+          title: npcData.title,
+          location: npcData.location,
+          relationship: npcData.relationship,
+          importance: npcData.importance,
+          description: npcData.description,
+          background: npcData.background,
+          notes: npcData.notes,
+          image_url: npcData.imageUrl
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+      setNpcs(prev => [data, ...prev])
+      toast.success('NPC created successfully!')
+    } catch (error: any) {
+      toast.error('Failed to create NPC: ' + error.message)
+    }
   }
 
   const handleEditNpc = (npc: any) => {
@@ -67,11 +70,51 @@ const NPCs = () => {
     setNpcFormOpen(true)
   }
 
-  const handleUpdateNpc = (updatedNpc: any) => {
-    setNpcs(prev => prev.map(npc => 
-      npc.id === updatedNpc.id ? updatedNpc : npc
-    ))
-    setEditingNpc(null)
+  const handleUpdateNpc = async (updatedNpc: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('npcs')
+        .update({
+          name: updatedNpc.name,
+          title: updatedNpc.title,
+          location: updatedNpc.location,
+          relationship: updatedNpc.relationship,
+          importance: updatedNpc.importance,
+          description: updatedNpc.description,
+          background: updatedNpc.background,
+          notes: updatedNpc.notes,
+          image_url: updatedNpc.imageUrl
+        })
+        .eq('id', updatedNpc.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      setNpcs(prev => prev.map(npc => 
+        npc.id === updatedNpc.id ? data : npc
+      ))
+      setEditingNpc(null)
+      toast.success('NPC updated successfully!')
+    } catch (error: any) {
+      toast.error('Failed to update NPC: ' + error.message)
+    }
+  }
+
+  const handleDeleteNpc = async (npcId: string) => {
+    if (!confirm('Are you sure you want to delete this NPC?')) return
+
+    try {
+      const { error } = await supabase
+        .from('npcs')
+        .delete()
+        .eq('id', npcId)
+
+      if (error) throw error
+      setNpcs(prev => prev.filter(npc => npc.id !== npcId))
+      toast.success('NPC deleted successfully!')
+    } catch (error: any) {
+      toast.error('Failed to delete NPC: ' + error.message)
+    }
   }
 
   const handleViewDetails = (npc: any) => {
@@ -80,9 +123,9 @@ const NPCs = () => {
   }
 
   const filteredNpcs = npcs.filter(npc => {
-    const matchesSearch = npc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         npc.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         npc.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = npc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         npc.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         npc.description?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesFilter = !filterRelationship || npc.relationship === filterRelationship
     return matchesSearch && matchesFilter
   })
@@ -107,6 +150,14 @@ const NPCs = () => {
       case "Low": return "bg-gray-500/20 text-gray-400 border-gray-500/30"
       default: return "bg-accent/20 text-accent border-accent/30"
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent"></div>
+      </div>
+    )
   }
 
   return (
@@ -234,8 +285,8 @@ const NPCs = () => {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {filteredNpcs.map((npc, index) => (
-              <Card key={index} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
+            {filteredNpcs.map((npc) => (
+              <Card key={npc.id} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -266,7 +317,7 @@ const NPCs = () => {
                   </p>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
-                      Last encounter: {npc.lastEncounter}
+                      Created: {new Date(npc.created_at).toLocaleDateString()}
                     </span>
                     <div className="flex gap-2">
                       <Button 
@@ -290,6 +341,17 @@ const NPCs = () => {
                         className="border-primary/30 text-primary hover:bg-primary/10"
                       >
                         View Details
+                      </Button>
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteNpc(npc.id)
+                        }}
+                        variant="outline" 
+                        size="sm" 
+                        className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -346,24 +408,12 @@ const NPCs = () => {
                   </div>
                 )}
                 
-                {selectedNpc.goals && (
+                {selectedNpc.notes && (
                   <div>
-                    <h4 className="font-semibold text-foreground mb-2">Goals & Motivations</h4>
-                    <p className="text-muted-foreground">{selectedNpc.goals}</p>
+                    <h4 className="font-semibold text-foreground mb-2">Notes</h4>
+                    <p className="text-muted-foreground">{selectedNpc.notes}</p>
                   </div>
                 )}
-                
-                {selectedNpc.secrets && (
-                  <div>
-                    <h4 className="font-semibold text-foreground mb-2">Secrets & Notes</h4>
-                    <p className="text-muted-foreground">{selectedNpc.secrets}</p>
-                  </div>
-                )}
-                
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Last Encounter</h4>
-                  <p className="text-muted-foreground">{selectedNpc.lastEncounter}</p>
-                </div>
               </div>
               
               <div className="flex gap-2">

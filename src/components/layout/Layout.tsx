@@ -23,7 +23,7 @@ export function Layout({ children }: LayoutProps) {
                 D&D Campaign Hub
               </h1>
             </div>
-            <div className="ml-auto">
+            <div className="flex items-center gap-4">
               <GlobalSearch onResultClick={(path) => navigate(path)} />
             </div>
           </header>
