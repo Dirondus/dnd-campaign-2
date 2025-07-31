@@ -1,13 +1,17 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { InteractiveMap } from "@/components/map/InteractiveMap"
 import { Map, Plus, MapPin, Mountain, Trees, Waves, Crown, Swords, Upload } from "lucide-react"
 import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
 
 const WorldMap = () => {
   const [currentMapUrl, setCurrentMapUrl] = useState<string | undefined>(undefined)
+  const [savedMaps, setSavedMaps] = useState<any[]>([])
+  const [waypoints, setWaypoints] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const mapLayers = [
     { name: "Political Boundaries", active: true, color: "text-red-400" },
     { name: "Terrain Features", active: true, color: "text-green-400" },
