@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          last_session: string | null
+          members: Json | null
+          name: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_session?: string | null
+          members?: Json | null
+          name: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_session?: string | null
+          members?: Json | null
+          name?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lore_entries: {
+        Row: {
+          category: string
+          content: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          summary: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       magic_items: {
         Row: {
           created_at: string
@@ -112,6 +184,105 @@ export type Database = {
           },
         ]
       }
+      monsters: {
+        Row: {
+          abilities: Json | null
+          created_at: string
+          created_by: string | null
+          danger_rating: string | null
+          description: string | null
+          elements: string[] | null
+          hit_points: string | null
+          id: string
+          magic_dice: string | null
+          name: string
+          size: string | null
+          strength_dice: string | null
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          abilities?: Json | null
+          created_at?: string
+          created_by?: string | null
+          danger_rating?: string | null
+          description?: string | null
+          elements?: string[] | null
+          hit_points?: string | null
+          id?: string
+          magic_dice?: string | null
+          name: string
+          size?: string | null
+          strength_dice?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          abilities?: Json | null
+          created_at?: string
+          created_by?: string | null
+          danger_rating?: string | null
+          description?: string | null
+          elements?: string[] | null
+          hit_points?: string | null
+          id?: string
+          magic_dice?: string | null
+          name?: string
+          size?: string | null
+          strength_dice?: string | null
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      npcs: {
+        Row: {
+          background: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          importance: string | null
+          location: string | null
+          name: string
+          notes: string | null
+          relationship: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          background?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          importance?: string | null
+          location?: string | null
+          name: string
+          notes?: string | null
+          relationship?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          background?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          importance?: string | null
+          location?: string | null
+          name?: string
+          notes?: string | null
+          relationship?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pets: {
         Row: {
           created_at: string
@@ -193,8 +364,59 @@ export type Database = {
         }
         Relationships: []
       }
+      sessions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          duration: number | null
+          group_id: string | null
+          id: string
+          status: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          xp_gained: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          duration?: number | null
+          group_id?: string | null
+          id?: string
+          status?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          xp_gained?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          duration?: number | null
+          group_id?: string | null
+          id?: string
+          status?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          xp_gained?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waypoints: {
         Row: {
+          category: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -206,6 +428,7 @@ export type Database = {
           y_position: number
         }
         Insert: {
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -217,6 +440,7 @@ export type Database = {
           y_position: number
         }
         Update: {
+          category?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
