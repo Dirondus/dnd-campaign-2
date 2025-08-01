@@ -1,7 +1,10 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "./AppSidebar"
 import { GlobalSearch } from "@/components/GlobalSearch"
+import { Button } from "@/components/ui/button"
 import { useNavigate } from "react-router-dom"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
 
 interface LayoutProps {
   children: React.ReactNode
@@ -9,6 +12,15 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate()
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success('Signed out successfully!')
+    }
+  }
 
   return (
     <SidebarProvider>
@@ -23,8 +35,11 @@ export function Layout({ children }: LayoutProps) {
                 D&D Campaign Hub
               </h1>
             </div>
-            <div className="flex items-center gap-4 mr-32">
+            <div className="flex items-center gap-4">
               <GlobalSearch onResultClick={(path) => navigate(path)} />
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
+                Sign Out
+              </Button>
             </div>
           </header>
           
