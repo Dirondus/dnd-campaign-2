@@ -41,6 +41,12 @@ const NPCs = () => {
 
   const handleCreateNpc = async (npcData: any) => {
     try {
+      const user = await supabase.auth.getUser()
+      if (!user.data.user) {
+        toast.error('You must be logged in to create NPCs')
+        return
+      }
+
       const { data, error } = await supabase
         .from('npcs')
         .insert([{
@@ -52,7 +58,8 @@ const NPCs = () => {
           description: npcData.description,
           background: npcData.background,
           notes: npcData.notes,
-          image_url: npcData.imageUrl
+          image_url: npcData.imageUrl,
+          created_by: user.data.user.id
         }])
         .select()
         .single()

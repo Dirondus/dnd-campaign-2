@@ -57,6 +57,12 @@ const Monsters = () => {
 
   const handleCreateMonster = async (monsterData: any) => {
     try {
+      const user = await supabase.auth.getUser()
+      if (!user.data.user) {
+        toast.error('You must be logged in to create monsters')
+        return
+      }
+
       const { data, error } = await supabase
         .from('monsters')
         .insert([{
@@ -69,7 +75,8 @@ const Monsters = () => {
           magic_dice: monsterData.magicDice,
           elements: monsterData.elements || [],
           description: monsterData.description,
-          abilities: monsterData.abilities || []
+          abilities: monsterData.abilities || [],
+          created_by: user.data.user.id
         }])
         .select()
         .single()

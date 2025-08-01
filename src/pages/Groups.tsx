@@ -38,6 +38,12 @@ const Groups = () => {
 
   const handleCreateGroup = async (groupData: any) => {
     try {
+      const user = await supabase.auth.getUser()
+      if (!user.data.user) {
+        toast.error('You must be logged in to create groups')
+        return
+      }
+
       const { data, error } = await supabase
         .from('groups')
         .insert([{
@@ -45,7 +51,8 @@ const Groups = () => {
           description: groupData.description,
           status: groupData.status || 'Active',
           members: groupData.members || [],
-          last_session: groupData.lastSession || null
+          last_session: groupData.lastSession || null,
+          created_by: user.data.user.id
         }])
         .select()
         .single()

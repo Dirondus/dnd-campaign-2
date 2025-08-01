@@ -66,6 +66,12 @@ const Lore = () => {
 
   const handleCreateEntry = async (entryData: any) => {
     try {
+      const user = await supabase.auth.getUser()
+      if (!user.data.user) {
+        toast.error('You must be logged in to create lore entries')
+        return
+      }
+
       const { data, error } = await supabase
         .from('lore_entries')
         .insert([{
@@ -73,7 +79,8 @@ const Lore = () => {
           category: entryData.category,
           summary: entryData.summary,
           content: entryData.content,
-          tags: entryData.tags || []
+          tags: entryData.tags || [],
+          created_by: user.data.user.id
         }])
         .select()
         .single()
