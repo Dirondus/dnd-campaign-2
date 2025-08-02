@@ -55,12 +55,6 @@ const CampaignTools = () => {
   const [editingItem, setEditingItem] = useState<any>(null)
   const [formData, setFormData] = useState<any>({})
 
-  const handleAddItem = useCallback((type: string) => {
-    setEditingItem(null)
-    setFormData({})
-    setIsDialogOpen(true)
-  }, [])
-
   const handleSaveItem = useCallback((type: string) => {
     const newItem = {
       id: Date.now().toString(),
@@ -305,7 +299,11 @@ const CampaignTools = () => {
               />
             </div>
             <Button 
-              onClick={() => handleAddItem('magic')} 
+              onClick={() => {
+                setEditingItem(null)
+                setFormData({})
+                setIsDialogOpen(true)
+              }}
               className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -343,7 +341,11 @@ const CampaignTools = () => {
               />
             </div>
             <Button 
-              onClick={() => handleAddItem('weapons')} 
+              onClick={() => {
+                setEditingItem(null)
+                setFormData({})
+                setIsDialogOpen(true)
+              }}
               className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -381,7 +383,11 @@ const CampaignTools = () => {
               />
             </div>
             <Button 
-              onClick={() => handleAddItem('pets')} 
+              onClick={() => {
+                setEditingItem(null)
+                setFormData({})
+                setIsDialogOpen(true)
+              }}
               className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
             >
               <Plus className="h-4 w-4 mr-2" />
