@@ -88,10 +88,6 @@ const CampaignTools = () => {
     toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully!`)
   }, [formData])
 
-  const updateFormData = useCallback((field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }, [])
-
   const ItemForm = ({ type, onSave }: { type: string, onSave: () => void }) => (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -100,7 +96,7 @@ const CampaignTools = () => {
           id="name" 
           placeholder={`Enter ${type} name`}
           value={formData.name || ''}
-          onChange={(e) => updateFormData('name', e.target.value)}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
         />
       </div>
       <div className="space-y-2">
@@ -110,7 +106,7 @@ const CampaignTools = () => {
           placeholder="Describe the item..." 
           rows={3}
           value={formData.description || ''}
-          onChange={(e) => updateFormData('description', e.target.value)}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
         />
       </div>
       {type === 'magic' && (
@@ -119,7 +115,7 @@ const CampaignTools = () => {
             <Label htmlFor="type">Type</Label>
             <Select 
               value={formData.type || ''} 
-              onValueChange={(value) => updateFormData('type', value)}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select type" />
@@ -137,7 +133,7 @@ const CampaignTools = () => {
             <Label htmlFor="rarity">Rarity</Label>
             <Select 
               value={formData.rarity || ''} 
-              onValueChange={(value) => updateFormData('rarity', value)}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, rarity: value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select rarity" />
@@ -161,14 +157,14 @@ const CampaignTools = () => {
               id="damage" 
               placeholder="e.g., 1d8 slashing"
               value={formData.damage || ''}
-              onChange={(e) => updateFormData('damage', e.target.value)}
+              onChange={(e) => setFormData(prev => ({ ...prev, damage: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="weapon-type">Weapon Type</Label>
             <Select 
               value={formData.weaponType || ''} 
-              onValueChange={(value) => updateFormData('weaponType', value)}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, weaponType: value }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select weapon type" />
@@ -191,7 +187,7 @@ const CampaignTools = () => {
               id="species" 
               placeholder="e.g., Wolf, Eagle, Cat"
               value={formData.species || ''}
-              onChange={(e) => updateFormData('species', e.target.value)}
+              onChange={(e) => setFormData(prev => ({ ...prev, species: e.target.value }))}
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
@@ -202,7 +198,7 @@ const CampaignTools = () => {
                 type="number" 
                 placeholder="13"
                 value={formData.ac || ''}
-                onChange={(e) => updateFormData('ac', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, ac: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -212,7 +208,7 @@ const CampaignTools = () => {
                 type="number" 
                 placeholder="11"
                 value={formData.hp || ''}
-                onChange={(e) => updateFormData('hp', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, hp: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -221,7 +217,7 @@ const CampaignTools = () => {
                 id="speed" 
                 placeholder="40 ft"
                 value={formData.speed || ''}
-                onChange={(e) => updateFormData('speed', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, speed: e.target.value }))}
               />
             </div>
           </div>

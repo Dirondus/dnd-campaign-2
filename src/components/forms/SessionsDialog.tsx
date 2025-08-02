@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { SessionForm } from "@/components/forms/SessionForm"
-import { Plus, Edit, Calendar } from "lucide-react"
+import { Plus, Edit, Calendar, Trash2 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 
@@ -93,6 +93,23 @@ export const SessionsDialog = ({ open, onOpenChange, groupName, groupId }: Sessi
     setSessionFormOpen(true)
   }
 
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to delete this session?')) return
+
+    try {
+      const { error } = await supabase
+        .from('sessions')
+        .delete()
+        .eq('id', sessionId)
+
+      if (error) throw error
+      setSessions(prev => prev.filter(s => s.id !== sessionId))
+      toast.success('Session deleted successfully!')
+    } catch (error: any) {
+      toast.error('Failed to delete session: ' + error.message)
+    }
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,6 +191,15 @@ export const SessionsDialog = ({ open, onOpenChange, groupName, groupId }: Sessi
                             >
                               <Edit className="h-4 w-4 mr-1" />
                               Edit
+                            </Button>
+                            <Button 
+                              onClick={() => handleDeleteSession(session.id)}
+                              variant="outline" 
+                              size="sm"
+                              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
                             </Button>
                           </div>
                         </div>
