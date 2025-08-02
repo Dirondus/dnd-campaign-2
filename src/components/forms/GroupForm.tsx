@@ -71,7 +71,7 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
     onSubmit({
       ...formData,
       members: validMembers,
-      lastSession: group?.lastSession || "Never",
+      last_session: group?.last_session || null,
       id: group?.id || Date.now()
     })
     

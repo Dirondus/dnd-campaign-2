@@ -31,6 +31,8 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   const [selectedWaypoint, setSelectedWaypoint] = useState<Waypoint | null>(null)
   const [isAddingWaypoint, setIsAddingWaypoint] = useState(false)
   const [newWaypoint, setNewWaypoint] = useState({ title: '', description: '', category: 'location', x: 0, y: 0 })
+  const [pendingWaypointCategory, setPendingWaypointCategory] = useState<string>('')
+  const [showCategorySelector, setShowCategorySelector] = useState(false)
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
@@ -41,14 +43,20 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleMapClick = useCallback((e: React.MouseEvent) => {
-    if (!isAddingWaypoint || !mapRef.current) return
+    if (!isAddingWaypoint || !mapRef.current || !pendingWaypointCategory) return
 
     const rect = mapRef.current.getBoundingClientRect()
     const x = ((e.clientX - rect.left - pan.x) / zoom) / rect.width * 100
     const y = ((e.clientY - rect.top - pan.y) / zoom) / rect.height * 100
 
-    setNewWaypoint(prev => ({ ...prev, x, y }))
-  }, [isAddingWaypoint, zoom, pan])
+    // Ensure coordinates are within bounds
+    const clampedX = Math.max(0, Math.min(100, x))
+    const clampedY = Math.max(0, Math.min(100, y))
+
+    setNewWaypoint(prev => ({ ...prev, x: clampedX, y: clampedY, category: pendingWaypointCategory }))
+    setIsAddingWaypoint(false)
+    setPendingWaypointCategory('')
+  }, [isAddingWaypoint, zoom, pan, pendingWaypointCategory])
 
   // Constrain panning to keep image within bounds
   const constrainPan = useCallback((newPan: { x: number, y: number }) => {
@@ -194,11 +202,25 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setIsAddingWaypoint(!isAddingWaypoint)}
-            className={isAddingWaypoint ? "bg-primary text-primary-foreground" : ""}
+            onClick={() => setShowCategorySelector(true)}
           >
-            {isAddingWaypoint ? "Cancel Waypoint" : "Add Waypoint"}
+            <MapPin className="h-4 w-4 mr-2" />
+            Add Waypoint
           </Button>
+          {isAddingWaypoint && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsAddingWaypoint(false)
+                setPendingWaypointCategory('')
+              }}
+              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+          )}
         </div>
         <div className="flex gap-2">
           <input
@@ -328,9 +350,41 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
         </Dialog>
       )}
 
+      {/* Category Selector Dialog */}
+      <Dialog open={showCategorySelector} onOpenChange={setShowCategorySelector}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Waypoint Type</DialogTitle>
+            <DialogDescription>
+              Choose the type of waypoint you want to add, then click on the map to place it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            {waypointCategories.map((category) => {
+              const IconComponent = category.icon
+              return (
+                <Button
+                  key={category.value}
+                  variant="outline"
+                  className="flex items-center gap-2 p-4 h-auto"
+                  onClick={() => {
+                    setPendingWaypointCategory(category.value)
+                    setIsAddingWaypoint(true)
+                    setShowCategorySelector(false)
+                  }}
+                >
+                  <IconComponent className={`h-5 w-5 ${category.color}`} />
+                  <span>{category.label}</span>
+                </Button>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Waypoint Dialog */}
-      {isAddingWaypoint && newWaypoint.x > 0 && (
-        <Dialog open={true} onOpenChange={() => setIsAddingWaypoint(false)}>
+      {newWaypoint.x > 0 && (
+        <Dialog open={true} onOpenChange={() => setNewWaypoint({ title: '', description: '', category: 'location', x: 0, y: 0 })}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Waypoint</DialogTitle>
@@ -339,27 +393,6 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select 
-                  value={newWaypoint.category} 
-                  onValueChange={(value) => setNewWaypoint(prev => ({ ...prev, category: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {waypointCategories.map((category) => (
-                      <SelectItem key={category.value} value={category.value}>
-                        <div className="flex items-center gap-2">
-                          <WaypointIcon category={category.value} size={16} />
-                          {category.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
@@ -380,7 +413,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
                 />
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsAddingWaypoint(false)}>
+                <Button variant="outline" onClick={() => setNewWaypoint({ title: '', description: '', category: 'location', x: 0, y: 0 })}>
                   Cancel
                 </Button>
                 <Button onClick={addWaypoint} disabled={!newWaypoint.title.trim()}>

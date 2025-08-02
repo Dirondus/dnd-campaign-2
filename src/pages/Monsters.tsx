@@ -21,10 +21,11 @@ const Monsters = () => {
   ]
 
   const dangerRatings = [
-    { range: "DR 0-2", count: 0, description: "Weak creatures, good for low-level encounters" },
-    { range: "DR 3-7", count: 0, description: "Moderate threats for mid-level parties" },
-    { range: "DR 8-15", count: 0, description: "Dangerous foes for experienced adventurers" },
-    { range: "DR 16+", count: 0, description: "Legendary creatures and world-ending threats" },
+    { range: "DR 1", count: 0, description: "Very weak creatures" },
+    { range: "DR 2", count: 0, description: "Weak creatures" },
+    { range: "DR 3", count: 0, description: "Moderate threats" },
+    { range: "DR 4", count: 0, description: "Strong enemies" },
+    { range: "DR 5", count: 0, description: "Very dangerous foes" },
   ]
 
   const [monsters, setMonsters] = useState<any[]>([])
@@ -34,6 +35,7 @@ const Monsters = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [viewingMonster, setViewingMonster] = useState<any>(null)
   const [selectedType, setSelectedType] = useState<string>('')
+  const [selectedDR, setSelectedDR] = useState<string>('')
 
   useEffect(() => {
     fetchMonsters()
@@ -150,6 +152,10 @@ const Monsters = () => {
     setSelectedType(selectedType === type ? '' : type)
   }
 
+  const handleDRFilter = (dr: string) => {
+    setSelectedDR(selectedDR === dr ? '' : dr)
+  }
+
   const getDangerColor = (dr: string) => {
     const drNum = parseInt(dr || '0')
     if (drNum <= 2) return "bg-green-500/20 text-green-400 border-green-500/30"
@@ -251,20 +257,23 @@ const Monsters = () => {
       {/* Danger Ratings */}
       <div>
         <h2 className="text-xl font-semibold text-foreground mb-4">Danger Ratings</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {dangerRatings.map((dr) => (
-            <Card key={dr.range} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer">
+            <Card 
+              key={dr.range} 
+              className={`bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical cursor-pointer ${
+                selectedDR === dr.range ? 'ring-2 ring-accent' : ''
+              }`}
+              onClick={() => handleDRFilter(dr.range)}
+            >
               <CardContent className="p-4">
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="font-semibold text-foreground">{dr.range}</h3>
                   <span className="text-2xl font-bold text-accent">
                     {monsters.filter(m => {
                       const drNum = parseInt(m.danger_rating || '0')
-                      if (dr.range === "DR 0-2") return drNum <= 2
-                      if (dr.range === "DR 3-7") return drNum >= 3 && drNum <= 7
-                      if (dr.range === "DR 8-15") return drNum >= 8 && drNum <= 15
-                      if (dr.range === "DR 16+") return drNum >= 16
-                      return false
+                      const drLevel = parseInt(dr.range.replace('DR ', ''))
+                      return drNum === drLevel
                     }).length}
                   </span>
                 </div>
@@ -307,7 +316,8 @@ const Monsters = () => {
             {monsters
               .filter(m => 
                 m.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                (selectedType === '' || m.type === selectedType)
+                (selectedType === '' || m.type === selectedType) &&
+                (selectedDR === '' || m.danger_rating === selectedDR.replace('DR ', ''))
               )
               .map((monster) => (
               <Card key={monster.id} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
