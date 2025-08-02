@@ -225,7 +225,7 @@ const CampaignTools = () => {
       )}
       <Button 
         onClick={() => handleSaveItem(type)}
-        className="w-full bg-gradient-primary text-primary-foreground"
+        className="w-full bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
         disabled={!formData.name}
       >
         Save {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -304,7 +304,10 @@ const CampaignTools = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button onClick={() => handleAddItem('magic')} className="bg-gradient-primary text-primary-foreground">
+            <Button 
+              onClick={() => handleAddItem('magic')} 
+              className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Magic Item
             </Button>
@@ -339,7 +342,10 @@ const CampaignTools = () => {
                 onChange={(e) => setWeaponSearchTerm(e.target.value)}
               />
             </div>
-            <Button onClick={() => handleAddItem('weapons')} className="bg-gradient-primary text-primary-foreground">
+            <Button 
+              onClick={() => handleAddItem('weapons')} 
+              className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Weapon
             </Button>
@@ -374,7 +380,10 @@ const CampaignTools = () => {
                 onChange={(e) => setPetSearchTerm(e.target.value)}
               />
             </div>
-            <Button onClick={() => handleAddItem('pets')} className="bg-gradient-primary text-primary-foreground">
+            <Button 
+              onClick={() => handleAddItem('pets')} 
+              className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Pet
             </Button>
