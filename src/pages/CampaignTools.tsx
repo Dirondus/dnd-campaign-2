@@ -67,6 +67,14 @@ const CampaignTools = () => {
       ...formData
     }
 
+    if (type === 'pets') {
+      newItem.stats = {
+        ac: parseInt(formData.ac) || 0,
+        hp: parseInt(formData.hp) || 0,
+        speed: formData.speed || ''
+      }
+    }
+
     if (type === 'magic') {
       setMagicItems(prev => [...prev, newItem])
     } else if (type === 'weapons') {
@@ -194,10 +202,7 @@ const CampaignTools = () => {
                 type="number" 
                 placeholder="13"
                 value={formData.ac || ''}
-                onChange={(e) => updateFormData('stats', { 
-                  ...formData.stats, 
-                  ac: parseInt(e.target.value) || 0 
-                })}
+                onChange={(e) => updateFormData('ac', e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -207,10 +212,7 @@ const CampaignTools = () => {
                 type="number" 
                 placeholder="11"
                 value={formData.hp || ''}
-                onChange={(e) => updateFormData('stats', { 
-                  ...formData.stats, 
-                  hp: parseInt(e.target.value) || 0 
-                })}
+                onChange={(e) => updateFormData('hp', e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -219,10 +221,7 @@ const CampaignTools = () => {
                 id="speed" 
                 placeholder="40 ft"
                 value={formData.speed || ''}
-                onChange={(e) => updateFormData('stats', { 
-                  ...formData.stats, 
-                  speed: e.target.value 
-                })}
+                onChange={(e) => updateFormData('speed', e.target.value)}
               />
             </div>
           </div>

@@ -51,7 +51,7 @@ export const SessionForm = ({ open, onOpenChange, onSubmit, session, groupId }: 
     }
 
     const sessionData = {
-      id: session?.id,
+      ...(session?.id && { id: session.id }),
       group_id: groupId,
       title: title.trim(),
       date,
