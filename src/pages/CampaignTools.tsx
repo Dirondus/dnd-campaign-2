@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-import { Plus, Wand2, Sword, Heart, Search } from "lucide-react"
+import { Plus, Wand2, Sword, Heart, Search, Trash2 } from "lucide-react"
 import { toast } from 'sonner'
 import { ItemForm } from "@/components/forms/ItemForm"
 
@@ -83,6 +83,20 @@ const CampaignTools = () => {
     toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully!`)
   }, [formData])
 
+  const handleDeleteItem = useCallback((type: string, itemId: string) => {
+    if (!confirm('Are you sure you want to delete this item?')) return
+
+    if (type === 'magic') {
+      setMagicItems(prev => prev.filter(item => item.id !== itemId))
+    } else if (type === 'weapons') {
+      setWeapons(prev => prev.filter(item => item.id !== itemId))
+    } else if (type === 'pets') {
+      setPets(prev => prev.filter(item => item.id !== itemId))
+    }
+
+    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully!`)
+  }, [])
+
   const ItemCard = ({ item, type }: { item: any, type: string }) => (
     <Card className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
       <CardHeader>
@@ -95,6 +109,14 @@ const CampaignTools = () => {
               {type === 'pets' && `${item.species} • AC ${item.stats?.ac}`}
             </CardDescription>
           </div>
+          <Button 
+            onClick={() => handleDeleteItem(type, item.id)}
+            variant="outline" 
+            size="sm"
+            className="text-destructive border-destructive/30 hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </CardHeader>
       <CardContent>

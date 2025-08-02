@@ -1,25 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { waypointCategories, WaypointIcon } from "./WaypointIconSelector"
-
-import { MapPin, Upload, X, Edit, Trash2 } from "lucide-react"
-import { toast } from 'sonner'
-
-interface Waypoint {
-  id: string
-  title: string
-  description: string
-  category: string
-  x: number
-  y: number
-}
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { WaypointIconSelector } from './WaypointIconSelector'
+import { Upload } from 'lucide-react'
 
 interface InteractiveMapProps {
   mapUrl?: string
@@ -27,436 +8,281 @@ interface InteractiveMapProps {
 }
 
 export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
-  const [waypoints, setWaypoints] = useState<Waypoint[]>([])
-  const [selectedWaypoint, setSelectedWaypoint] = useState<Waypoint | null>(null)
-  const [isAddingWaypoint, setIsAddingWaypoint] = useState(false)
-  const [newWaypoint, setNewWaypoint] = useState({ title: '', description: '', category: 'location', x: 0, y: 0 })
-  const [pendingWaypointCategory, setPendingWaypointCategory] = useState<string>('')
-  const [showCategorySelector, setShowCategorySelector] = useState(false)
-  const [zoom, setZoom] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [currentMapUrl, setCurrentMapUrl] = useState(mapUrl)
+  const [waypoints, setWaypoints] = useState<any[]>([])
+  const [selectedWaypointType, setSelectedWaypointType] = useState<string | null>(null)
+  const [scale, setScale] = useState(1)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, startX: 0, startY: 0 })
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
-  const mapRef = useRef<HTMLDivElement>(null)
+  const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 })
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleMapClick = useCallback((e: React.MouseEvent) => {
-    if (!isAddingWaypoint || !mapRef.current || !pendingWaypointCategory) return
-
-    const rect = mapRef.current.getBoundingClientRect()
-    const x = ((e.clientX - rect.left - pan.x) / zoom) / rect.width * 100
-    const y = ((e.clientY - rect.top - pan.y) / zoom) / rect.height * 100
-
-    // Ensure coordinates are within bounds
-    const clampedX = Math.max(0, Math.min(100, x))
-    const clampedY = Math.max(0, Math.min(100, y))
-
-    setNewWaypoint(prev => ({ ...prev, x: clampedX, y: clampedY, category: pendingWaypointCategory }))
-    setIsAddingWaypoint(false)
-    setPendingWaypointCategory('')
-  }, [isAddingWaypoint, zoom, pan, pendingWaypointCategory])
-
-  // Constrain panning to keep image within bounds
-  const constrainPan = useCallback((newPan: { x: number, y: number }) => {
-    if (!mapRef.current || !imageDimensions.width) return newPan
-    
-    const container = mapRef.current.getBoundingClientRect()
-    const scaledWidth = imageDimensions.width * zoom
-    const scaledHeight = imageDimensions.height * zoom
-    
-    const maxPanX = Math.max(0, scaledWidth - container.width)
-    const maxPanY = Math.max(0, scaledHeight - container.height)
-    
-    return {
-      x: Math.max(-maxPanX, Math.min(0, newPan.x)),
-      y: Math.max(-maxPanY, Math.min(0, newPan.y))
-    }
-  }, [zoom, imageDimensions])
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (isAddingWaypoint) return
-    setIsDragging(true)
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y })
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return
-    const newPan = {
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    }
-    setPan(constrainPan(newPan))
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? 0.9 : 1.1
-    const newZoom = Math.max(0.3, Math.min(5, zoom * delta))
-    setZoom(newZoom)
-    
-    // Adjust pan to keep zoom centered
-    const rect = mapRef.current?.getBoundingClientRect()
-    if (rect) {
-      const centerX = rect.width / 2
-      const centerY = rect.height / 2
-      const newPan = {
-        x: centerX - (centerX - pan.x) * (newZoom / zoom),
-        y: centerY - (centerY - pan.y) * (newZoom / zoom)
+  // Update container dimensions on resize
+  useEffect(() => {
+    const updateContainerSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        setContainerDimensions({ width: rect.width, height: rect.height })
       }
-      setPan(constrainPan(newPan))
     }
-  }
 
-  const addWaypoint = () => {
-    if (!newWaypoint.title.trim()) return
-    
-    const waypoint: Waypoint = {
-      id: Date.now().toString(),
-      title: newWaypoint.title,
-      description: newWaypoint.description,
-      category: newWaypoint.category,
-      x: newWaypoint.x,
-      y: newWaypoint.y
+    updateContainerSize()
+    window.addEventListener('resize', updateContainerSize)
+    return () => window.removeEventListener('resize', updateContainerSize)
+  }, [])
+
+  // Calculate scale to fit image within container
+  const calculateFitScale = useCallback(() => {
+    if (!imageDimensions.width || !imageDimensions.height || !containerDimensions.width || !containerDimensions.height) {
+      return 1
     }
+
+    const scaleX = containerDimensions.width / imageDimensions.width
+    const scaleY = containerDimensions.height / imageDimensions.height
+    return Math.min(scaleX, scaleY, 1) // Don't scale up beyond original size
+  }, [imageDimensions, containerDimensions])
+
+  // Handle image load
+  const handleImageLoad = useCallback(() => {
+    if (imageRef.current) {
+      const img = imageRef.current
+      setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight })
+      
+      // Auto-fit image to container
+      const fitScale = calculateFitScale()
+      setScale(fitScale)
+      
+      // Center the image
+      const scaledWidth = img.naturalWidth * fitScale
+      const scaledHeight = img.naturalHeight * fitScale
+      setPosition({
+        x: (containerDimensions.width - scaledWidth) / 2,
+        y: (containerDimensions.height - scaledHeight) / 2
+      })
+    }
+  }, [calculateFitScale, containerDimensions])
+
+  // Constrain position to prevent image from going outside bounds
+  const constrainPosition = useCallback((newX: number, newY: number, currentScale: number) => {
+    if (!imageDimensions.width || !imageDimensions.height) return { x: newX, y: newY }
+
+    const scaledWidth = imageDimensions.width * currentScale
+    const scaledHeight = imageDimensions.height * currentScale
+
+    // Calculate bounds
+    const minX = Math.min(0, containerDimensions.width - scaledWidth)
+    const maxX = Math.max(0, containerDimensions.width - scaledWidth)
+    const minY = Math.min(0, containerDimensions.height - scaledHeight)
+    const maxY = Math.max(0, containerDimensions.height - scaledHeight)
+
+    return {
+      x: Math.max(minX, Math.min(maxX, newX)),
+      y: Math.max(minY, Math.min(maxY, newY))
+    }
+  }, [imageDimensions, containerDimensions])
+
+  // Handle wheel zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault()
     
-    setWaypoints(prev => [...prev, waypoint])
-    setNewWaypoint({ title: '', description: '', category: 'location', x: 0, y: 0 })
-    setIsAddingWaypoint(false)
-    toast.success('Waypoint added!')
-  }
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
 
-  const deleteWaypoint = (id: string) => {
-    setWaypoints(prev => prev.filter(w => w.id !== id))
-    setSelectedWaypoint(null)
-    toast.success('Waypoint removed!')
-  }
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
 
+    const delta = e.deltaY > 0 ? 0.9 : 1.1
+    const fitScale = calculateFitScale()
+    const newScale = Math.max(fitScale * 0.5, Math.min(scale * delta, fitScale * 3)) // Constrain zoom range
+
+    // Calculate new position to zoom towards mouse
+    const newX = mouseX - (mouseX - position.x) * (newScale / scale)
+    const newY = mouseY - (mouseY - position.y) * (newScale / scale)
+
+    const constrainedPosition = constrainPosition(newX, newY, newScale)
+    
+    setScale(newScale)
+    setPosition(constrainedPosition)
+  }, [scale, position, calculateFitScale, constrainPosition])
+
+  // Handle mouse events for dragging
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    setIsDragging(true)
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      startX: position.x,
+      startY: position.y
+    })
+  }, [position])
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return
+    
+    const newX = dragStart.startX + (e.clientX - dragStart.x)
+    const newY = dragStart.startY + (e.clientY - dragStart.y)
+    
+    const constrainedPosition = constrainPosition(newX, newY, scale)
+    setPosition(constrainedPosition)
+  }, [isDragging, dragStart, scale, constrainPosition])
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  // Handle map click for waypoint placement
+  const handleMapClick = useCallback((e: React.MouseEvent) => {
+    if (isDragging || !currentMapUrl || !selectedWaypointType) return
+
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    // Calculate relative position within the image
+    const clickX = e.clientX - rect.left
+    const clickY = e.clientY - rect.top
+    
+    // Convert to image coordinates
+    const imageX = (clickX - position.x) / scale
+    const imageY = (clickY - position.y) / scale
+    
+    // Convert to percentage for storage
+    const xPercent = (imageX / imageDimensions.width) * 100
+    const yPercent = (imageY / imageDimensions.height) * 100
+
+    // Only place if within image bounds
+    if (xPercent >= 0 && xPercent <= 100 && yPercent >= 0 && yPercent <= 100) {
+      // Add waypoint to local state
+      const newWaypoint = {
+        id: Date.now().toString(),
+        x_position: xPercent,
+        y_position: yPercent,
+        category: selectedWaypointType,
+        title: `Waypoint ${waypoints.length + 1}`,
+        description: 'New waypoint'
+      }
+      setWaypoints(prev => [...prev, newWaypoint])
+      setSelectedWaypointType(null)
+    }
+  }, [isDragging, currentMapUrl, selectedWaypointType, position, scale, imageDimensions, waypoints])
+
+  // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string
-        setCurrentMapUrl(imageUrl)
-        
-        // Get image dimensions
-        const img = new Image()
-        img.onload = () => {
-          setImageDimensions({ width: img.width, height: img.height })
-          setZoom(1)
-          setPan({ x: 0, y: 0 })
-        }
-        img.src = imageUrl
-        
-        toast.success('Map uploaded successfully!')
-      }
-      reader.readAsDataURL(file)
+      const url = URL.createObjectURL(file)
+      setCurrentMapUrl(url)
       if (onMapUpload) {
         onMapUpload(file)
       }
-    } else {
-      toast.error('Please upload a valid image file!')
     }
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Map Controls */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const newZoom = Math.min(5, zoom * 1.2)
-              setZoom(newZoom)
-              setPan(constrainPan(pan))
-            }}
-          >
-            Zoom In
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const newZoom = Math.max(0.3, zoom * 0.8)
-              setZoom(newZoom)
-              setPan(constrainPan(pan))
-            }}
-          >
-            Zoom Out
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }}
-          >
-            Reset View
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCategorySelector(true)}
-          >
-            <MapPin className="h-4 w-4 mr-2" />
-            Add Waypoint
-          </Button>
-          {isAddingWaypoint && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setIsAddingWaypoint(false)
-                setPendingWaypointCategory('')
-              }}
-              className="text-destructive border-destructive/30 hover:bg-destructive/10"
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {currentMapUrl ? "Change Map" : "Upload Map"}
-          </Button>
-        </div>
+  // Reset view when map changes
+  useEffect(() => {
+    if (currentMapUrl && imageRef.current) {
+      // Reset to fit the new image
+      handleImageLoad()
+    }
+  }, [currentMapUrl, handleImageLoad])
+
+  if (!currentMapUrl) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 bg-muted/20 rounded-lg border-2 border-dashed border-muted">
+        <Upload className="h-16 w-16 text-muted-foreground mb-4 opacity-50" />
+        <p className="text-muted-foreground mb-4">No map uploaded</p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        >
+          Upload Map
+        </button>
       </div>
+    )
+  }
 
-      {/* Map Container */}
-      <Card className="bg-gradient-card border-border shadow-deep">
-        <CardContent className="p-0">
-          <div 
-            ref={mapRef}
-            className="relative w-full h-[600px] bg-muted/30 border-2 border-dashed border-border rounded-lg overflow-hidden cursor-grab active:cursor-grabbing"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onWheel={handleWheel}
-            onClick={handleMapClick}
+  return (
+    <div 
+      ref={containerRef}
+      className="relative w-full h-96 bg-background border border-border rounded-lg overflow-hidden"
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onClick={handleMapClick}
+      style={{ cursor: isDragging ? 'grabbing' : selectedWaypointType ? 'crosshair' : 'grab' }}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileUpload}
+        className="hidden"
+      />
+      
+      <img
+        ref={imageRef}
+        src={currentMapUrl}
+        alt="Campaign Map"
+        className="absolute select-none pointer-events-none"
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+          transformOrigin: '0 0',
+          transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+        }}
+        onLoad={handleImageLoad}
+        draggable={false}
+      />
+      
+      {/* Render waypoints */}
+      {waypoints?.map((waypoint) => {
+        if (!imageDimensions.width || !imageDimensions.height) return null
+        
+        // Calculate waypoint position in pixels
+        const waypointX = position.x + (waypoint.x_position / 100) * imageDimensions.width * scale
+        const waypointY = position.y + (waypoint.y_position / 100) * imageDimensions.height * scale
+        
+        return (
+          <div
+            key={waypoint.id}
+            className="absolute w-6 h-6 -translate-x-3 -translate-y-3 cursor-pointer z-10"
+            style={{
+              left: waypointX,
+              top: waypointY,
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              // Handle waypoint click if needed
+            }}
           >
-            {currentMapUrl ? (
-              <div
-                className="relative"
-                style={{
-                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                  transformOrigin: '0 0'
-                }}
-              >
-                <img 
-                  src={currentMapUrl} 
-                  alt="Campaign Map" 
-                  className="w-full h-full object-contain pointer-events-none"
-                  draggable={false}
-                />
-                
-                {/* Waypoints */}
-                {waypoints.map((waypoint) => (
-                  <div
-                    key={waypoint.id}
-                    className="absolute w-8 h-8 bg-background rounded-full border-2 border-accent shadow-lg cursor-pointer hover:scale-110 transition-transform flex items-center justify-center"
-                    style={{
-                      left: `${waypoint.x}%`,
-                      top: `${waypoint.y}%`,
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setSelectedWaypoint(waypoint)
-                    }}
-                  >
-                    <WaypointIcon category={waypoint.category} size={20} />
-                  </div>
-                ))}
-
-                {/* New waypoint preview */}
-                {isAddingWaypoint && newWaypoint.x > 0 && (
-                  <div
-                    className="absolute w-8 h-8 bg-primary rounded-full border-2 border-background shadow-lg flex items-center justify-center opacity-70"
-                    style={{
-                      left: `${newWaypoint.x}%`,
-                      top: `${newWaypoint.y}%`,
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                  >
-                    <WaypointIcon category={newWaypoint.category} size={20} className="text-background" />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Upload className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <h3 className="text-xl font-semibold text-foreground mb-2">No Map Uploaded</h3>
-                  <p className="text-muted-foreground mb-4">
-                    No map has been uploaded yet
-                  </p>
-                </div>
-              </div>
-            )}
+            <WaypointIconSelector 
+              category={waypoint.category || 'location'} 
+              className="w-6 h-6 text-primary drop-shadow-lg" 
+            />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Waypoint Info Dialog */}
-      {selectedWaypoint && (
-        <Dialog open={!!selectedWaypoint} onOpenChange={() => setSelectedWaypoint(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                {selectedWaypoint.title}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <WaypointIcon category={selectedWaypoint.category} size={24} />
-                <Badge variant="secondary">{waypointCategories.find(c => c.value === selectedWaypoint.category)?.label}</Badge>
-              </div>
-              <p className="text-muted-foreground">{selectedWaypoint.description}</p>
-              <div className="flex justify-between items-center">
-                <Badge variant="outline">
-                  Position: {selectedWaypoint.x.toFixed(1)}%, {selectedWaypoint.y.toFixed(1)}%
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => deleteWaypoint(selectedWaypoint.id)}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Category Selector Dialog */}
-      <Dialog open={showCategorySelector} onOpenChange={setShowCategorySelector}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Select Waypoint Type</DialogTitle>
-            <DialogDescription>
-              Choose the type of waypoint you want to add, then click on the map to place it.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-3">
-            {waypointCategories.map((category) => {
-              const IconComponent = category.icon
-              return (
-                <Button
-                  key={category.value}
-                  variant="outline"
-                  className="flex items-center gap-2 p-4 h-auto"
-                  onClick={() => {
-                    setPendingWaypointCategory(category.value)
-                    setIsAddingWaypoint(true)
-                    setShowCategorySelector(false)
-                  }}
-                >
-                  <IconComponent className={`h-5 w-5 ${category.color}`} />
-                  <span>{category.label}</span>
-                </Button>
-              )
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Waypoint Dialog */}
-      {newWaypoint.x > 0 && (
-        <Dialog open={true} onOpenChange={() => setNewWaypoint({ title: '', description: '', category: 'location', x: 0, y: 0 })}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Waypoint</DialogTitle>
-              <DialogDescription>
-                Create a new waypoint at the selected location
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={newWaypoint.title}
-                  onChange={(e) => setNewWaypoint(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter waypoint title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newWaypoint.description}
-                  onChange={(e) => setNewWaypoint(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe this location..."
-                  rows={3}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setNewWaypoint({ title: '', description: '', category: 'location', x: 0, y: 0 })}>
-                  Cancel
-                </Button>
-                <Button onClick={addWaypoint} disabled={!newWaypoint.title.trim()}>
-                  Add Waypoint
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Waypoints List */}
-      {waypoints.length > 0 && (
-        <Card className="bg-gradient-card border-border shadow-deep">
-          <CardHeader>
-            <CardTitle className="text-lg text-foreground">Waypoints</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {waypoints.map((waypoint) => (
-                <div
-                  key={waypoint.id}
-                  className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors cursor-pointer"
-                  onClick={() => setSelectedWaypoint(waypoint)}
-                >
-                  <div className="flex items-center gap-3">
-                    <WaypointIcon category={waypoint.category} size={20} />
-                    <div>
-                      <h4 className="font-medium text-foreground">{waypoint.title}</h4>
-                      <p className="text-sm text-muted-foreground line-clamp-1">
-                        {waypoint.description}
-                      </p>
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {waypointCategories.find(c => c.value === waypoint.category)?.label}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        )
+      })}
+      
+      {/* Upload button overlay */}
+      <button
+        onClick={() => fileInputRef.current?.click()}
+        className="absolute top-2 right-2 px-3 py-1 bg-background/80 border border-border rounded-md text-sm hover:bg-background transition-colors"
+      >
+        Change Map
+      </button>
     </div>
   )
 }

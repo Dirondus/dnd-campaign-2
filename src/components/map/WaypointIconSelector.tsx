@@ -41,3 +41,6 @@ export const WaypointIcon = ({ category, size = 16, className = '' }: WaypointIc
   const { icon: Icon, color } = getWaypointIcon(category)
   return <Icon size={size} className={`${color} ${className}`} />
 }
+
+// Export with alternate name for compatibility
+export const WaypointIconSelector = WaypointIcon
