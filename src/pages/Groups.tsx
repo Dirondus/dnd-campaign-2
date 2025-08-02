@@ -291,6 +291,7 @@ const Groups = () => {
         open={sessionsDialogOpen}
         onOpenChange={setSessionsDialogOpen}
         groupName={selectedGroupForSessions?.name || ''}
+        groupId={selectedGroupForSessions?.id || ''}
       />
     </div>
   )
