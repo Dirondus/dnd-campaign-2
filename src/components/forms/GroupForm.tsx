@@ -34,9 +34,16 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
     group?.members || [{ name: '', element: 'Fire', level: 1, weapon: 'Sword' }]
   )
 
-  // Reset form when not editing
+  // Update form when group changes
   useEffect(() => {
-    if (!group) {
+    if (group) {
+      setFormData({
+        name: group.name || '',
+        description: group.description || '',
+        status: group.status || 'Active'
+      })
+      setMembers(group.members || [{ name: '', element: 'Fire', level: 1, weapon: 'Sword' }])
+    } else {
       setFormData({ name: '', description: '', status: 'Active' })
       setMembers([{ name: '', element: 'Fire', level: 1, weapon: 'Sword' }])
     }
