@@ -1,11 +1,62 @@
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, BookOpen, Map, UserCheck, Skull, Dice6 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Users, BookOpen, Map, UserCheck, Skull, Dice6, Save } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
+import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
 import heroImage from "@/assets/dnd-hero.jpg"
 
 const Index = () => {
   const navigate = useNavigate()
+  const [quickNotes, setQuickNotes] = useState('')
+  const [stats, setStats] = useState({
+    groups: 0,
+    npcs: 0,
+    monsters: 0,
+    loreEntries: 0
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadDashboardData()
+    loadQuickNotes()
+  }, [])
+
+  const loadDashboardData = async () => {
+    try {
+      const [groupsData, npcsData, monstersData, loreData] = await Promise.all([
+        supabase.from('groups').select('id'),
+        supabase.from('npcs').select('id'),
+        supabase.from('monsters').select('id'),
+        supabase.from('lore_entries').select('id')
+      ])
+
+      setStats({
+        groups: groupsData.data?.length || 0,
+        npcs: npcsData.data?.length || 0,
+        monsters: monstersData.data?.length || 0,
+        loreEntries: loreData.data?.length || 0
+      })
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadQuickNotes = () => {
+    const saved = localStorage.getItem('campaign-quick-notes')
+    if (saved) {
+      setQuickNotes(saved)
+    }
+  }
+
+  const saveQuickNotes = () => {
+    localStorage.setItem('campaign-quick-notes', quickNotes)
+    toast.success('Notes saved!')
+  }
   
   const quickActions = [
     { title: "Manage Groups", description: "View and organize your 3 party groups", icon: Users, href: "/groups", color: "bg-gradient-primary" },
@@ -73,27 +124,46 @@ const Index = () => {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Active Groups:</span>
-              <span className="text-2xl font-bold text-accent">3</span>
+              <span className="text-2xl font-bold text-accent">{loading ? '...' : stats.groups}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">NPCs Created:</span>
-              <span className="text-2xl font-bold text-accent">0</span>
+              <span className="text-2xl font-bold text-accent">{loading ? '...' : stats.npcs}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Monsters Catalogued:</span>
-              <span className="text-2xl font-bold text-accent">0</span>
+              <span className="text-2xl font-bold text-accent">{loading ? '...' : stats.monsters}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Lore Entries:</span>
+              <span className="text-2xl font-bold text-accent">{loading ? '...' : stats.loreEntries}</span>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-card border-border shadow-deep">
           <CardHeader>
-            <CardTitle className="text-accent">Quick Notes</CardTitle>
+            <CardTitle className="text-accent flex items-center justify-between">
+              Quick Notes
+              <Button 
+                onClick={saveQuickNotes}
+                size="sm"
+                variant="outline"
+                className="border-accent/30 text-accent hover:bg-accent/10"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </Button>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground italic">
-              Start building your campaign world. Add lore, create memorable NPCs, and prepare encounters for your adventuring parties.
-            </p>
+            <Textarea
+              value={quickNotes}
+              onChange={(e) => setQuickNotes(e.target.value)}
+              placeholder="Jot down quick notes about your campaign..."
+              rows={4}
+              className="bg-background/50 border-border"
+            />
           </CardContent>
         </Card>
       </div>

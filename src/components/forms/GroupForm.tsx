@@ -136,7 +136,7 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
             </div>
             
             {members.map((member, index) => (
-              <div key={index} className="grid grid-cols-6 gap-3 p-4 bg-muted/30 rounded-lg">
+              <div key={index} className="grid grid-cols-5 gap-3 p-4 bg-muted/30 rounded-lg">
                 <div className="space-y-1">
                   <Label className="text-xs">Name</Label>
                   <Input
@@ -218,17 +218,6 @@ export const GroupForm = ({ open, onOpenChange, onSubmit, group }: GroupFormProp
                       <SelectItem value="Staff">Staff</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Final Level</Label>
-                  <Input
-                    type="number"
-                    value={member.finalLevel || member.level}
-                    onChange={(e) => updateMember(index, 'finalLevel', parseInt(e.target.value) || member.level)}
-                    min={member.level}
-                    max="100"
-                    placeholder="Max level"
-                  />
                 </div>
                 <div className="flex items-end">
                   <Button

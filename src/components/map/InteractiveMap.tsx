@@ -191,6 +191,22 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     }
   }, [currentMapUrl, handleImageLoad])
 
+  // Auto-fit when container dimensions change
+  useEffect(() => {
+    if (currentMapUrl && imageDimensions.width && imageDimensions.height) {
+      const fitScale = calculateFitScale()
+      setScale(fitScale)
+      
+      // Center the image
+      const scaledWidth = imageDimensions.width * fitScale
+      const scaledHeight = imageDimensions.height * fitScale
+      setPosition({
+        x: (containerDimensions.width - scaledWidth) / 2,
+        y: (containerDimensions.height - scaledHeight) / 2
+      })
+    }
+  }, [containerDimensions, imageDimensions, calculateFitScale, currentMapUrl])
+
   if (!currentMapUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-96 bg-muted/20 rounded-lg border-2 border-dashed border-muted">

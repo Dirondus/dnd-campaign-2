@@ -17,28 +17,37 @@ interface MonsterFormProps {
 
 export const MonsterForm = ({ open, onOpenChange, onSubmit, monster }: MonsterFormProps) => {
   const [formData, setFormData] = useState({
-    name: monster?.name || '',
-    type: monster?.type || 'Beast',
-    size: monster?.size || 'Medium',
-    dangerRating: monster?.dangerRating || '1',
-    environment: monster?.environment || '',
-    description: monster?.description || '',
-    hp: monster?.hp || 10,
-    strengthDice: monster?.strengthDice || '1d6',
-    magicDice: monster?.magicDice || '1d4'
+    name: '',
+    type: 'Beast',
+    size: 'Medium',
+    dangerRating: '1',
+    environment: '',
+    description: '',
+    hp: 10,
+    strengthDice: '1d6',
+    magicDice: '1d4'
   })
   
-  const [elements, setElements] = useState<string[]>(
-    monster?.elements || ['']
-  )
-  
-  const [abilities, setAbilities] = useState<string[]>(
-    monster?.abilities || ['']
-  )
+  const [elements, setElements] = useState<string[]>([''])
+  const [abilities, setAbilities] = useState<string[]>([''])
 
-  // Reset form when not editing
+  // Pre-fill form when editing
   useEffect(() => {
-    if (!monster) {
+    if (monster) {
+      setFormData({
+        name: monster.name || '',
+        type: monster.type || 'Beast',
+        size: monster.size || 'Medium',
+        dangerRating: monster.danger_rating || '1',
+        environment: monster.environment || '',
+        description: monster.description || '',
+        hp: monster.hit_points || 10,
+        strengthDice: monster.strength_dice || '1d6',
+        magicDice: monster.magic_dice || '1d4'
+      })
+      setElements(monster.elements && monster.elements.length > 0 ? monster.elements : [''])
+      setAbilities(monster.abilities && monster.abilities.length > 0 ? monster.abilities : [''])
+    } else {
       setFormData({
         name: '',
         type: 'Beast',

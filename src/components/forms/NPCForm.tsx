@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,16 +16,42 @@ interface NPCFormProps {
 
 export const NPCForm = ({ open, onOpenChange, onSubmit, npc }: NPCFormProps) => {
   const [formData, setFormData] = useState({
-    name: npc?.name || '',
-    title: npc?.title || '',
-    location: npc?.location || '',
-    relationship: npc?.relationship || 'Neutral',
-    importance: npc?.importance || 'Medium',
-    description: npc?.description || '',
-    background: npc?.background || '',
-    goals: npc?.goals || '',
-    secrets: npc?.secrets || ''
+    name: '',
+    title: '',
+    location: '',
+    relationship: 'Neutral',
+    importance: 'Medium',
+    description: '',
+    background: '',
+    notes: ''
   })
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (npc) {
+      setFormData({
+        name: npc.name || '',
+        title: npc.title || '',
+        location: npc.location || '',
+        relationship: npc.relationship || 'Neutral',
+        importance: npc.importance || 'Medium',
+        description: npc.description || '',
+        background: npc.background || '',
+        notes: npc.notes || ''
+      })
+    } else {
+      setFormData({
+        name: '',
+        title: '',
+        location: '',
+        relationship: 'Neutral',
+        importance: 'Medium',
+        description: '',
+        background: '',
+        notes: ''
+      })
+    }
+  }, [npc, open])
 
   const handleSubmit = () => {
     if (!formData.name.trim()) {
@@ -140,27 +166,15 @@ export const NPCForm = ({ open, onOpenChange, onSubmit, npc }: NPCFormProps) => 
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="goals">Goals & Motivations</Label>
-              <Textarea
-                id="goals"
-                value={formData.goals}
-                onChange={(e) => setFormData(prev => ({ ...prev, goals: e.target.value }))}
-                placeholder="Seeks to overthrow the corrupt council..."
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="secrets">Secrets & Notes</Label>
-              <Textarea
-                id="secrets"
-                value={formData.secrets}
-                onChange={(e) => setFormData(prev => ({ ...prev, secrets: e.target.value }))}
-                placeholder="Secretly a member of the resistance..."
-                rows={3}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Additional notes about this NPC..."
+              rows={3}
+            />
           </div>
 
           <div className="flex gap-2 pt-4">

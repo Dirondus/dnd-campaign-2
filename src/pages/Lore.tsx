@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, Plus, Scroll, Landmark, Globe, Crown, Clock, Layers, Trash2 } from "lucide-react"
+import { SectionSearch } from "@/components/search/SectionSearch"
 import { LoreForm } from "@/components/forms/LoreForm"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase } from "@/integrations/supabase/client"
@@ -37,6 +38,7 @@ const Lore = () => {
   ]
 
   const [loreEntries, setLoreEntries] = useState<any[]>([])
+  const [filteredEntries, setFilteredEntries] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [loreFormOpen, setLoreFormOpen] = useState(false)
   const [timelineBuilderOpen, setTimelineBuilderOpen] = useState(false)
@@ -57,6 +59,7 @@ const Lore = () => {
 
       if (error) throw error
       setLoreEntries(data || [])
+      setFilteredEntries(data || [])
     } catch (error: any) {
       toast.error('Failed to load lore entries: ' + error.message)
     } finally {
@@ -141,9 +144,6 @@ const Lore = () => {
     }
   }
 
-  const filteredEntries = selectedCategory 
-    ? loreEntries.filter(entry => entry.category === selectedCategory)
-    : loreEntries
 
   const getCategoryEntries = (categoryTitle: string) => {
     return loreEntries.filter(entry => entry.category === categoryTitle || 
@@ -170,13 +170,21 @@ const Lore = () => {
             The comprehensive guide to your campaign world
           </p>
         </div>
-        <Button 
-          onClick={() => setLoreFormOpen(true)}
-          className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Entry
-        </Button>
+        <div className="flex gap-4 items-center">
+          <SectionSearch 
+            data={selectedCategory ? loreEntries.filter(entry => entry.category === selectedCategory) : loreEntries}
+            onFilter={setFilteredEntries}
+            searchFields={['title', 'content', 'summary', 'tags']}
+            placeholder="Search lore entries..."
+          />
+          <Button 
+            onClick={() => setLoreFormOpen(true)}
+            className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Entry
+          </Button>
+        </div>
       </div>
 
       {/* Categories Overview */}

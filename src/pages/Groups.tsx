@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Plus, Crown, Sword, Shield, Heart, Trash2 } from "lucide-react"
+import { SectionSearch } from "@/components/search/SectionSearch"
 import { GroupForm } from "@/components/forms/GroupForm"
 import { SessionsDialog } from "@/components/forms/SessionsDialog"
 import { supabase } from "@/integrations/supabase/client"
@@ -10,6 +11,7 @@ import { toast } from "sonner"
 
 const Groups = () => {
   const [groups, setGroups] = useState<any[]>([])
+  const [filteredGroups, setFilteredGroups] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [groupFormOpen, setGroupFormOpen] = useState(false)
   const [sessionsDialogOpen, setSessionsDialogOpen] = useState(false)
@@ -29,6 +31,7 @@ const Groups = () => {
 
       if (error) throw error
       setGroups(data || [])
+      setFilteredGroups(data || [])
     } catch (error: any) {
       toast.error('Failed to load groups: ' + error.message)
     } finally {
@@ -160,17 +163,25 @@ const Groups = () => {
             Manage your active adventuring parties
           </p>
         </div>
-        <Button 
-          onClick={() => setGroupFormOpen(true)}
-          className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Group
-        </Button>
+        <div className="flex gap-4 items-center">
+          <SectionSearch 
+            data={groups}
+            onFilter={setFilteredGroups}
+            searchFields={['name', 'description', 'members.name']}
+            placeholder="Search groups..."
+          />
+          <Button 
+            onClick={() => setGroupFormOpen(true)}
+            className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Group
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6">
-        {groups.length === 0 ? (
+        {filteredGroups.length === 0 ? (
           <Card className="bg-gradient-card border-border shadow-deep">
             <CardContent className="p-12 text-center">
               <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -188,7 +199,7 @@ const Groups = () => {
             </CardContent>
           </Card>
         ) : (
-          groups.map((group) => (
+          filteredGroups.map((group) => (
             <Card key={group.id} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
               <CardHeader>
                 <div className="flex justify-between items-start">

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,12 +16,33 @@ interface LoreFormProps {
 
 export const LoreForm = ({ open, onOpenChange, onSubmit, entry }: LoreFormProps) => {
   const [formData, setFormData] = useState({
-    title: entry?.title || '',
-    category: entry?.category || 'Locations',
-    summary: entry?.summary || '',
-    content: entry?.content || '',
-    tags: entry?.tags?.join(', ') || ''
+    title: '',
+    category: 'Locations',
+    summary: '',
+    content: '',
+    tags: ''
   })
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (entry) {
+      setFormData({
+        title: entry.title || '',
+        category: entry.category || 'Locations',
+        summary: entry.summary || '',
+        content: entry.content || '',
+        tags: entry.tags?.join(', ') || ''
+      })
+    } else {
+      setFormData({
+        title: '',
+        category: 'Locations',
+        summary: '',
+        content: '',
+        tags: ''
+      })
+    }
+  }, [entry, open])
 
   const handleSubmit = () => {
     if (!formData.title.trim()) {

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Skull, Plus, Search, Zap, Shield, Sword, Crown, Eye, Trash2 } from "lucide-react"
+import { Skull, Plus, Zap, Shield, Sword, Crown, Eye, Trash2 } from "lucide-react"
+import { SectionSearch } from "@/components/search/SectionSearch"
 import { MonsterForm } from "@/components/forms/MonsterForm"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -29,10 +29,10 @@ const Monsters = () => {
   ]
 
   const [monsters, setMonsters] = useState<any[]>([])
+  const [filteredMonsters, setFilteredMonsters] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [monsterFormOpen, setMonsterFormOpen] = useState(false)
   const [editingMonster, setEditingMonster] = useState<any>(null)
-  const [searchTerm, setSearchTerm] = useState('')
   const [viewingMonster, setViewingMonster] = useState<any>(null)
   const [selectedType, setSelectedType] = useState<string>('')
   const [selectedDR, setSelectedDR] = useState<string>('')
@@ -50,6 +50,7 @@ const Monsters = () => {
 
       if (error) throw error
       setMonsters(data || [])
+      setFilteredMonsters(data || [])
     } catch (error: any) {
       toast.error('Failed to load monsters: ' + error.message)
     } finally {
@@ -195,38 +196,23 @@ const Monsters = () => {
             Catalog of creatures and encounters for your campaign
           </p>
         </div>
-        <Button 
-          onClick={() => setMonsterFormOpen(true)}
-          className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Monster
-        </Button>
+        <div className="flex gap-4 items-center">
+          <SectionSearch 
+            data={monsters}
+            onFilter={setFilteredMonsters}
+            searchFields={['name', 'type', 'description', 'elements']}
+            placeholder="Search monsters..."
+          />
+          <Button 
+            onClick={() => setMonsterFormOpen(true)}
+            className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Monster
+          </Button>
+        </div>
       </div>
 
-      {/* Search and Filter */}
-      <Card className="bg-gradient-card border-border shadow-deep">
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search monsters by name, type, or challenge rating..." 
-                className="pl-10 bg-background/50 border-border"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Button 
-              variant="outline" 
-              className="border-accent/30 text-accent hover:bg-accent/10"
-              onClick={() => setSelectedType('')}
-            >
-              {selectedType ? `Filter: ${selectedType}` : 'Filter by Type'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Monster Types */}
       <div>
@@ -290,11 +276,11 @@ const Monsters = () => {
           <Skull className="h-6 w-6 text-accent" />
           <h2 className="text-xl font-semibold text-foreground">All Monsters</h2>
           <Badge variant="outline" className="text-accent border-accent/30">
-            {monsters.length} Total
+            {filteredMonsters.length} Total
           </Badge>
         </div>
 
-        {monsters.length === 0 ? (
+        {filteredMonsters.length === 0 ? (
           <Card className="bg-gradient-card border-border shadow-deep">
             <CardContent className="p-12 text-center">
               <Skull className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -313,9 +299,8 @@ const Monsters = () => {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {monsters
+            {filteredMonsters
               .filter(m => 
-                m.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
                 (selectedType === '' || m.type === selectedType) &&
                 (selectedDR === '' || m.danger_rating === selectedDR.replace('DR ', ''))
               )

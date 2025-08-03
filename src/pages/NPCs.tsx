@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { UserCheck, Plus, Search, Crown, Sword, Shield, Users, Star, Filter, Trash2 } from "lucide-react"
+import { SectionSearch } from "@/components/search/SectionSearch"
 import { NPCForm } from "@/components/forms/NPCForm"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase } from "@/integrations/supabase/client"
@@ -11,12 +12,12 @@ import { toast } from "sonner"
 
 const NPCs = () => {
   const [npcs, setNpcs] = useState<any[]>([])
+  const [filteredNpcs, setFilteredNpcs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [npcFormOpen, setNpcFormOpen] = useState(false)
   const [npcDetailsOpen, setNpcDetailsOpen] = useState(false)
   const [editingNpc, setEditingNpc] = useState<any>(null)
   const [selectedNpc, setSelectedNpc] = useState<any>(null)
-  const [searchTerm, setSearchTerm] = useState('')
   const [filterRelationship, setFilterRelationship] = useState<string | null>(null)
 
   useEffect(() => {
@@ -32,6 +33,7 @@ const NPCs = () => {
 
       if (error) throw error
       setNpcs(data || [])
+      setFilteredNpcs(data || [])
     } catch (error: any) {
       toast.error('Failed to load NPCs: ' + error.message)
     } finally {
@@ -129,13 +131,10 @@ const NPCs = () => {
     setNpcDetailsOpen(true)
   }
 
-  const filteredNpcs = npcs.filter(npc => {
-    const matchesSearch = npc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         npc.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         npc.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = !filterRelationship || npc.relationship === filterRelationship
-    return matchesSearch && matchesFilter
-  })
+  // Filter by relationship when set
+  const displayedNpcs = filterRelationship 
+    ? filteredNpcs.filter(npc => npc.relationship === filterRelationship)
+    : filteredNpcs
 
   const getCategoryCount = (relationship: string) => {
     return npcs.filter(npc => npc.relationship === relationship).length
@@ -178,39 +177,23 @@ const NPCs = () => {
             Manage all non-player characters in your campaign
           </p>
         </div>
-        <Button 
-          onClick={() => setNpcFormOpen(true)}
-          className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create NPC
-        </Button>
+        <div className="flex gap-4 items-center">
+          <SectionSearch 
+            data={npcs}
+            onFilter={setFilteredNpcs}
+            searchFields={['name', 'location', 'description', 'title']}
+            placeholder="Search NPCs..."
+          />
+          <Button 
+            onClick={() => setNpcFormOpen(true)}
+            className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create NPC
+          </Button>
+        </div>
       </div>
 
-      {/* Search and Filter */}
-      <Card className="bg-gradient-card border-border shadow-deep">
-        <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search NPCs by name, location, or description..." 
-                className="pl-10 bg-background/50 border-border"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Button 
-              variant="outline" 
-              className="border-accent/30 text-accent hover:bg-accent/10"
-              onClick={() => setFilterRelationship(filterRelationship ? null : 'Ally')}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Categories Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -269,11 +252,11 @@ const NPCs = () => {
             {filterRelationship ? `${filterRelationship} NPCs` : 'All NPCs'}
           </h2>
           <Badge variant="outline" className="text-accent border-accent/30">
-            {filteredNpcs.length} Total
+            {displayedNpcs.length} Total
           </Badge>
         </div>
 
-        {filteredNpcs.length === 0 ? (
+        {displayedNpcs.length === 0 ? (
           <Card className="bg-gradient-card border-border shadow-deep">
             <CardContent className="p-12 text-center">
               <UserCheck className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -292,7 +275,7 @@ const NPCs = () => {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {filteredNpcs.map((npc) => (
+            {displayedNpcs.map((npc) => (
               <Card key={npc.id} className="bg-gradient-card border-border shadow-deep hover:shadow-magical transition-magical">
                 <CardHeader>
                   <div className="flex justify-between items-start">
