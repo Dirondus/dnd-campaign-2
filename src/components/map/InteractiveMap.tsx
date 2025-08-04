@@ -52,54 +52,68 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     return () => window.removeEventListener('resize', updateContainerSize)
   }, [])
 
-  // Calculate scale to fit image within container with border constraints
+  // Calculate scale to fit image within container
   const calculateFitScale = useCallback(() => {
-    if (!containerDimensions.width || !containerDimensions.height) {
+    if (!imageDimensions.width || !imageDimensions.height || !containerDimensions.width || !containerDimensions.height) {
       return 1
     }
 
-    const scaleX = containerDimensions.width / MAP_BORDER_SIZE
-    const scaleY = containerDimensions.height / MAP_BORDER_SIZE
+    const scaleX = containerDimensions.width / imageDimensions.width
+    const scaleY = containerDimensions.height / imageDimensions.height
     return Math.min(scaleX, scaleY, 1) // Don't scale up beyond original size
-  }, [containerDimensions])
+  }, [imageDimensions, containerDimensions])
 
-  // Handle image load with border snapping
+  // Handle image load with proper fitting
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {
       const img = imageRef.current
-      // Set dimensions to border size for consistent scaling
-      setImageDimensions({ width: MAP_BORDER_SIZE, height: MAP_BORDER_SIZE })
+      // Use actual image dimensions
+      setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight })
       
       // Auto-fit to container
-      const fitScale = calculateFitScale()
+      const scaleX = containerDimensions.width / img.naturalWidth
+      const scaleY = containerDimensions.height / img.naturalHeight
+      const fitScale = Math.min(scaleX, scaleY, 1)
       setScale(fitScale)
       
-      // Center the image within border
-      const scaledWidth = MAP_BORDER_SIZE * fitScale
-      const scaledHeight = MAP_BORDER_SIZE * fitScale
+      // Center the image
+      const scaledWidth = img.naturalWidth * fitScale
+      const scaledHeight = img.naturalHeight * fitScale
       setPosition({
         x: (containerDimensions.width - scaledWidth) / 2,
         y: (containerDimensions.height - scaledHeight) / 2
       })
     }
-  }, [calculateFitScale, containerDimensions])
-
-  // Constrain position to prevent border from going outside container
-  const constrainPosition = useCallback((newX: number, newY: number, currentScale: number) => {
-    const scaledWidth = MAP_BORDER_SIZE * currentScale
-    const scaledHeight = MAP_BORDER_SIZE * currentScale
-
-    // Calculate bounds to keep border within container
-    const minX = Math.min(0, containerDimensions.width - scaledWidth)
-    const maxX = Math.max(0, containerDimensions.width - scaledWidth)
-    const minY = Math.min(0, containerDimensions.height - scaledHeight)
-    const maxY = Math.max(0, containerDimensions.height - scaledHeight)
-
-    return {
-      x: Math.max(minX, Math.min(maxX, newX)),
-      y: Math.max(minY, Math.min(maxY, newY))
-    }
   }, [containerDimensions])
+
+  // Constrain position to keep image within container bounds
+  const constrainPosition = useCallback((newX: number, newY: number, currentScale: number) => {
+    if (!imageDimensions.width || !imageDimensions.height) return { x: newX, y: newY }
+
+    const scaledWidth = imageDimensions.width * currentScale
+    const scaledHeight = imageDimensions.height * currentScale
+
+    // If image is smaller than container, center it
+    if (scaledWidth <= containerDimensions.width) {
+      newX = (containerDimensions.width - scaledWidth) / 2
+    } else {
+      // Constrain to prevent empty spaces
+      const minX = containerDimensions.width - scaledWidth
+      const maxX = 0
+      newX = Math.max(minX, Math.min(maxX, newX))
+    }
+
+    if (scaledHeight <= containerDimensions.height) {
+      newY = (containerDimensions.height - scaledHeight) / 2
+    } else {
+      // Constrain to prevent empty spaces
+      const minY = containerDimensions.height - scaledHeight
+      const maxY = 0
+      newY = Math.max(minY, Math.min(maxY, newY))
+    }
+
+    return { x: newX, y: newY }
+  }, [imageDimensions, containerDimensions])
 
   // Handle wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -155,46 +169,49 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   const handleZoomIn = () => {
     const fitScale = calculateFitScale()
     const newScale = Math.min(scale * 1.2, fitScale * 5)
-    setScale(newScale)
     
-    // Keep image centered when zooming
-    const scaledWidth = MAP_BORDER_SIZE * newScale
-    const scaledHeight = MAP_BORDER_SIZE * newScale
-    const newPosition = constrainPosition(
-      (containerDimensions.width - scaledWidth) / 2,
-      (containerDimensions.height - scaledHeight) / 2,
-      newScale
-    )
-    setPosition(newPosition)
+    // Zoom towards center
+    const centerX = containerDimensions.width / 2
+    const centerY = containerDimensions.height / 2
+    const newX = centerX - (centerX - position.x) * (newScale / scale)
+    const newY = centerY - (centerY - position.y) * (newScale / scale)
+    
+    const constrainedPosition = constrainPosition(newX, newY, newScale)
+    setScale(newScale)
+    setPosition(constrainedPosition)
   }
 
   const handleZoomOut = () => {
     const fitScale = calculateFitScale()
     const newScale = Math.max(scale * 0.8, fitScale * 0.3)
-    setScale(newScale)
     
-    // Keep image centered when zooming
-    const scaledWidth = MAP_BORDER_SIZE * newScale
-    const scaledHeight = MAP_BORDER_SIZE * newScale
-    const newPosition = constrainPosition(
-      (containerDimensions.width - scaledWidth) / 2,
-      (containerDimensions.height - scaledHeight) / 2,
-      newScale
-    )
-    setPosition(newPosition)
+    // Zoom towards center
+    const centerX = containerDimensions.width / 2
+    const centerY = containerDimensions.height / 2
+    const newX = centerX - (centerX - position.x) * (newScale / scale)
+    const newY = centerY - (centerY - position.y) * (newScale / scale)
+    
+    const constrainedPosition = constrainPosition(newX, newY, newScale)
+    setScale(newScale)
+    setPosition(constrainedPosition)
   }
 
   const handleResetView = () => {
-    const fitScale = calculateFitScale()
-    setScale(fitScale)
-    
-    // Center the image
-    const scaledWidth = MAP_BORDER_SIZE * fitScale
-    const scaledHeight = MAP_BORDER_SIZE * fitScale
-    setPosition({
-      x: (containerDimensions.width - scaledWidth) / 2,
-      y: (containerDimensions.height - scaledHeight) / 2
-    })
+    if (imageRef.current) {
+      const img = imageRef.current
+      const scaleX = containerDimensions.width / img.naturalWidth
+      const scaleY = containerDimensions.height / img.naturalHeight
+      const fitScale = Math.min(scaleX, scaleY, 1)
+      setScale(fitScale)
+      
+      // Center the image
+      const scaledWidth = img.naturalWidth * fitScale
+      const scaledHeight = img.naturalHeight * fitScale
+      setPosition({
+        x: (containerDimensions.width - scaledWidth) / 2,
+        y: (containerDimensions.height - scaledHeight) / 2
+      })
+    }
   }
 
   // Handle map click for waypoint placement
@@ -204,19 +221,19 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
 
-    // Calculate relative position within the border
+    // Calculate relative position within the image
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
     
-    // Convert to border coordinates
-    const borderX = (clickX - position.x) / scale
-    const borderY = (clickY - position.y) / scale
+    // Convert to image coordinates
+    const imageX = (clickX - position.x) / scale
+    const imageY = (clickY - position.y) / scale
     
     // Convert to percentage for storage
-    const xPercent = (borderX / MAP_BORDER_SIZE) * 100
-    const yPercent = (borderY / MAP_BORDER_SIZE) * 100
+    const xPercent = (imageX / imageDimensions.width) * 100
+    const yPercent = (imageY / imageDimensions.height) * 100
 
-    // Only place if within border bounds
+    // Only place if within image bounds
     if (xPercent >= 0 && xPercent <= 100 && yPercent >= 0 && yPercent <= 100) {
       // Store coordinates and open dialog
       setNewWaypointData({
@@ -246,17 +263,36 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     setNewWaypointData({ title: '', description: '', category: '', x: 0, y: 0 })
   }
 
-  // Handle file upload
+  // Handle file upload with persistence
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && file.type.startsWith('image/')) {
       const url = URL.createObjectURL(file)
       setCurrentMapUrl(url)
+      
+      // Save to localStorage for persistence
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          localStorage.setItem('currentMapData', event.target.result as string)
+          localStorage.setItem('currentMapName', file.name)
+        }
+      }
+      reader.readAsDataURL(file)
+      
       if (onMapUpload) {
         onMapUpload(file)
       }
     }
   }
+
+  // Load saved map on component mount
+  useEffect(() => {
+    const savedMapData = localStorage.getItem('currentMapData')
+    if (savedMapData && !currentMapUrl) {
+      setCurrentMapUrl(savedMapData)
+    }
+  }, [])
 
   // Reset view when map changes
   useEffect(() => {
@@ -268,19 +304,38 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
 
   // Auto-fit when container dimensions change
   useEffect(() => {
-    if (currentMapUrl) {
+    if (currentMapUrl && imageDimensions.width && imageDimensions.height) {
       const fitScale = calculateFitScale()
       setScale(fitScale)
       
-      // Center the border
-      const scaledWidth = MAP_BORDER_SIZE * fitScale
-      const scaledHeight = MAP_BORDER_SIZE * fitScale
+      // Center the image
+      const scaledWidth = imageDimensions.width * fitScale
+      const scaledHeight = imageDimensions.height * fitScale
       setPosition({
         x: (containerDimensions.width - scaledWidth) / 2,
         y: (containerDimensions.height - scaledHeight) / 2
       })
     }
-  }, [containerDimensions, calculateFitScale, currentMapUrl])
+  }, [containerDimensions, imageDimensions, calculateFitScale, currentMapUrl])
+
+  // Save waypoints to localStorage whenever they change
+  useEffect(() => {
+    if (waypoints.length > 0) {
+      localStorage.setItem('mapWaypoints', JSON.stringify(waypoints))
+    }
+  }, [waypoints])
+
+  // Load saved waypoints on component mount
+  useEffect(() => {
+    const savedWaypoints = localStorage.getItem('mapWaypoints')
+    if (savedWaypoints) {
+      try {
+        setWaypoints(JSON.parse(savedWaypoints))
+      } catch (error) {
+        console.error('Failed to load saved waypoints:', error)
+      }
+    }
+  }, [])
 
   if (!currentMapUrl) {
     return (
@@ -340,9 +395,11 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
       
       {/* Render waypoints */}
       {waypoints?.map((waypoint) => {
-        // Calculate waypoint position in pixels within border
-        const waypointX = position.x + (waypoint.x_position / 100) * MAP_BORDER_SIZE * scale
-        const waypointY = position.y + (waypoint.y_position / 100) * MAP_BORDER_SIZE * scale
+        if (!imageDimensions.width || !imageDimensions.height) return null
+        
+        // Calculate waypoint position in pixels
+        const waypointX = position.x + (waypoint.x_position / 100) * imageDimensions.width * scale
+        const waypointY = position.y + (waypoint.y_position / 100) * imageDimensions.height * scale
         
         return (
           <div
