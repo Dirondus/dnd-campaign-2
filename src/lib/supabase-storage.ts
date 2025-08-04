@@ -25,9 +25,10 @@ export const updateInSupabase = async (table: TableName, id: string, data: any) 
       .update(data)
       .eq('id', id)
       .select()
-      .single()
+      .maybeSingle()
     
     if (error) throw error
+    if (!result) throw new Error('No record found to update')
     return result
   } catch (error) {
     console.error('Failed to update in Supabase:', error)
