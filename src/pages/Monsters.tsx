@@ -115,11 +115,12 @@ const Monsters = () => {
         })
         .eq('id', updatedMonster.id)
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) throw error
-      setMonsters(prev => prev.map(m => 
-        m.id === updatedMonster.id ? data : m
+      if (!data) throw new Error('No record found to update')
+      setMonsters(prev => prev.map(monster => 
+        monster.id === updatedMonster.id ? data : monster
       ))
       setEditingMonster(null)
       toast.success('Monster updated successfully!')

@@ -58,7 +58,7 @@ export const LoreForm = ({ open, onOpenChange, onSubmit, entry }: LoreFormProps)
       ...formData,
       tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
       lastUpdated: new Date().toISOString().split('T')[0],
-      id: entry?.id || Date.now()
+      id: entry?.id // Preserve original ID when editing, undefined when creating
     })
     
     onOpenChange(false)
