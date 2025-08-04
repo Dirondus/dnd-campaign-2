@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-import { Plus, Wand2, Sword, Heart, Search, Trash2 } from "lucide-react"
+import { Plus, Wand2, Sword, Heart, Search, Trash2, Edit } from "lucide-react"
 import { toast } from 'sonner'
 import { ItemForm } from "@/components/forms/ItemForm"
 
@@ -57,31 +57,92 @@ const CampaignTools = () => {
   const [formData, setFormData] = useState<any>({})
 
   const handleSaveItem = useCallback((type: string) => {
-    const newItem = {
-      id: Date.now().toString(),
-      ...formData
-    }
-
-    if (type === 'pets') {
-      newItem.stats = {
-        ac: parseInt(formData.ac) || 0,
-        hp: parseInt(formData.hp) || 0,
-        speed: formData.speed || ''
+    if (editingItem) {
+      // Update existing item
+      const updatedItem = {
+        ...editingItem,
+        ...formData
       }
-    }
 
-    if (type === 'magic') {
-      setMagicItems(prev => [...prev, newItem])
-    } else if (type === 'weapons') {
-      setWeapons(prev => [...prev, newItem])
-    } else if (type === 'pets') {
-      setPets(prev => [...prev, newItem])
+      if (type === 'pets') {
+        updatedItem.stats = {
+          ac: parseInt(formData.ac) || 0,
+          hp: parseInt(formData.hp) || 0,
+          speed: formData.speed || ''
+        }
+      }
+
+      if (type === 'magic') {
+        setMagicItems(prev => prev.map(item => item.id === editingItem.id ? updatedItem : item))
+      } else if (type === 'weapons') {
+        setWeapons(prev => prev.map(item => item.id === editingItem.id ? updatedItem : item))
+      } else if (type === 'pets') {
+        setPets(prev => prev.map(item => item.id === editingItem.id ? updatedItem : item))
+      }
+
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully!`)
+    } else {
+      // Create new item
+      const newItem = {
+        id: Date.now().toString(),
+        ...formData
+      }
+
+      if (type === 'pets') {
+        newItem.stats = {
+          ac: parseInt(formData.ac) || 0,
+          hp: parseInt(formData.hp) || 0,
+          speed: formData.speed || ''
+        }
+      }
+
+      if (type === 'magic') {
+        setMagicItems(prev => [...prev, newItem])
+      } else if (type === 'weapons') {
+        setWeapons(prev => [...prev, newItem])
+      } else if (type === 'pets') {
+        setPets(prev => [...prev, newItem])
+      }
+
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully!`)
     }
 
     setFormData({})
+    setEditingItem(null)
     setIsDialogOpen(false)
-    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully!`)
-  }, [formData])
+  }, [formData, editingItem])
+
+  const handleEditItem = useCallback((item: any, type: string) => {
+    setEditingItem(item)
+    
+    // Pre-populate form data based on item type
+    if (type === 'pets') {
+      setFormData({
+        name: item.name,
+        description: item.description,
+        species: item.species,
+        ac: item.stats?.ac?.toString() || '',
+        hp: item.stats?.hp?.toString() || '',
+        speed: item.stats?.speed || ''
+      })
+    } else if (type === 'weapons') {
+      setFormData({
+        name: item.name,
+        description: item.description,
+        damage: item.damage,
+        weaponType: item.weaponType
+      })
+    } else if (type === 'magic') {
+      setFormData({
+        name: item.name,
+        description: item.description,
+        type: item.type,
+        rarity: item.rarity
+      })
+    }
+    
+    setIsDialogOpen(true)
+  }, [])
 
   const handleDeleteItem = useCallback((type: string, itemId: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return
@@ -109,14 +170,24 @@ const CampaignTools = () => {
               {type === 'pets' && `${item.species} • AC ${item.stats?.ac}`}
             </CardDescription>
           </div>
-          <Button 
-            onClick={() => handleDeleteItem(type, item.id)}
-            variant="outline" 
-            size="sm"
-            className="text-destructive border-destructive/30 hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => handleEditItem(item, type)}
+              variant="outline" 
+              size="sm"
+              className="text-primary border-primary/30 hover:bg-primary/10"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button 
+              onClick={() => handleDeleteItem(type, item.id)}
+              variant="outline" 
+              size="sm"
+              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -296,14 +367,14 @@ const CampaignTools = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {activeTab === 'magic' && 'Add Magic Item'}
-              {activeTab === 'weapons' && 'Add Weapon'}
-              {activeTab === 'pets' && 'Add Pet'}
+              {activeTab === 'magic' && (editingItem ? 'Edit Magic Item' : 'Add Magic Item')}
+              {activeTab === 'weapons' && (editingItem ? 'Edit Weapon' : 'Add Weapon')}
+              {activeTab === 'pets' && (editingItem ? 'Edit Pet' : 'Add Pet')}
             </DialogTitle>
             <DialogDescription>
-              {activeTab === 'magic' && 'Create a new magical item for your campaign'}
-              {activeTab === 'weapons' && 'Create a new weapon for your campaign'}
-              {activeTab === 'pets' && 'Create a new companion for your campaign'}
+              {activeTab === 'magic' && (editingItem ? 'Update this magical item' : 'Create a new magical item for your campaign')}
+              {activeTab === 'weapons' && (editingItem ? 'Update this weapon' : 'Create a new weapon for your campaign')}
+              {activeTab === 'pets' && (editingItem ? 'Update this companion' : 'Create a new companion for your campaign')}
             </DialogDescription>
           </DialogHeader>
           <ItemForm 
