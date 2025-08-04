@@ -99,6 +99,9 @@ const Monsters = () => {
 
   const handleUpdateMonster = async (updatedMonster: any) => {
     try {
+      console.log('Updating monster with ID:', updatedMonster.id)
+      console.log('Update data:', updatedMonster)
+      
       const { data, error } = await supabase
         .from('monsters')
         .update({
@@ -117,6 +120,8 @@ const Monsters = () => {
         .select()
         .maybeSingle()
 
+      console.log('Supabase response - data:', data, 'error:', error)
+      
       if (error) throw error
       if (!data) throw new Error('No record found to update')
       setMonsters(prev => prev.map(monster => 
@@ -125,6 +130,7 @@ const Monsters = () => {
       setEditingMonster(null)
       toast.success('Monster updated successfully!')
     } catch (error: any) {
+      console.error('Monster update error:', error)
       toast.error('Failed to update monster: ' + error.message)
     }
   }

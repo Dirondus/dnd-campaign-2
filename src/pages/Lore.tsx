@@ -103,6 +103,9 @@ const Lore = () => {
 
   const handleUpdateEntry = async (updatedEntry: any) => {
     try {
+      console.log('Updating lore entry with ID:', updatedEntry.id)
+      console.log('Update data:', updatedEntry)
+      
       const { data, error } = await supabase
         .from('lore_entries')
         .update({
@@ -116,6 +119,8 @@ const Lore = () => {
         .select()
         .maybeSingle()
 
+      console.log('Supabase response - data:', data, 'error:', error)
+      
       if (error) throw error
       if (!data) throw new Error('No record found to update')
       setLoreEntries(prev => prev.map(entry => 
@@ -124,6 +129,7 @@ const Lore = () => {
       setEditingEntry(null)
       toast.success('Lore entry updated successfully!')
     } catch (error: any) {
+      console.error('Lore update error:', error)
       toast.error('Failed to update lore entry: ' + error.message)
     }
   }
