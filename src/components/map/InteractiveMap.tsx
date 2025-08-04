@@ -52,28 +52,29 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     return () => window.removeEventListener('resize', updateContainerSize)
   }, [])
 
-  // Calculate scale to fit image within container
+  // Calculate scale to fill container completely
   const calculateFitScale = useCallback(() => {
     if (!imageDimensions.width || !imageDimensions.height || !containerDimensions.width || !containerDimensions.height) {
       return 1
     }
 
+    // Use Math.max to ensure image covers entire container (may crop some parts)
     const scaleX = containerDimensions.width / imageDimensions.width
     const scaleY = containerDimensions.height / imageDimensions.height
-    return Math.min(scaleX, scaleY, 1) // Don't scale up beyond original size
+    return Math.max(scaleX, scaleY) // Fill entire container
   }, [imageDimensions, containerDimensions])
 
-  // Handle image load with proper fitting
+  // Handle image load with proper fitting to fill container
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {
       const img = imageRef.current
       // Use actual image dimensions
       setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight })
       
-      // Auto-fit to container
+      // Calculate scale to fill entire container
       const scaleX = containerDimensions.width / img.naturalWidth
       const scaleY = containerDimensions.height / img.naturalHeight
-      const fitScale = Math.min(scaleX, scaleY, 1)
+      const fitScale = Math.max(scaleX, scaleY) // Fill entire area
       setScale(fitScale)
       
       // Center the image
@@ -86,34 +87,11 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     }
   }, [containerDimensions])
 
-  // Constrain position to keep image within container bounds
+  // Allow free movement - no constraints
   const constrainPosition = useCallback((newX: number, newY: number, currentScale: number) => {
-    if (!imageDimensions.width || !imageDimensions.height) return { x: newX, y: newY }
-
-    const scaledWidth = imageDimensions.width * currentScale
-    const scaledHeight = imageDimensions.height * currentScale
-
-    // If image is smaller than container, center it
-    if (scaledWidth <= containerDimensions.width) {
-      newX = (containerDimensions.width - scaledWidth) / 2
-    } else {
-      // Constrain to prevent empty spaces
-      const minX = containerDimensions.width - scaledWidth
-      const maxX = 0
-      newX = Math.max(minX, Math.min(maxX, newX))
-    }
-
-    if (scaledHeight <= containerDimensions.height) {
-      newY = (containerDimensions.height - scaledHeight) / 2
-    } else {
-      // Constrain to prevent empty spaces
-      const minY = containerDimensions.height - scaledHeight
-      const maxY = 0
-      newY = Math.max(minY, Math.min(maxY, newY))
-    }
-
+    // No constraints - allow image to move freely in all directions
     return { x: newX, y: newY }
-  }, [imageDimensions, containerDimensions])
+  }, [])
 
   // Handle wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -127,16 +105,14 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
 
     const delta = e.deltaY > 0 ? 0.9 : 1.1
     const fitScale = calculateFitScale()
-    const newScale = Math.max(fitScale * 0.3, Math.min(scale * delta, fitScale * 5)) // Wider zoom range
+    const newScale = Math.max(fitScale * 0.1, Math.min(scale * delta, fitScale * 10)) // Much wider zoom range
 
-    // Calculate new position to zoom towards mouse
+    // Calculate new position to zoom towards mouse (no constraints)
     const newX = mouseX - (mouseX - position.x) * (newScale / scale)
     const newY = mouseY - (mouseY - position.y) * (newScale / scale)
-
-    const constrainedPosition = constrainPosition(newX, newY, newScale)
     
     setScale(newScale)
-    setPosition(constrainedPosition)
+    setPosition({ x: newX, y: newY })
   }, [scale, position, calculateFitScale, constrainPosition])
 
   // Handle mouse events for dragging
@@ -157,8 +133,8 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const newX = dragStart.startX + (e.clientX - dragStart.x)
     const newY = dragStart.startY + (e.clientY - dragStart.y)
     
-    const constrainedPosition = constrainPosition(newX, newY, scale)
-    setPosition(constrainedPosition)
+    // Allow free movement without constraints
+    setPosition({ x: newX, y: newY })
   }, [isDragging, dragStart, scale, constrainPosition])
 
   const handleMouseUp = useCallback(() => {
@@ -168,7 +144,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   // Zoom control functions
   const handleZoomIn = () => {
     const fitScale = calculateFitScale()
-    const newScale = Math.min(scale * 1.2, fitScale * 5)
+    const newScale = Math.min(scale * 1.2, fitScale * 10)
     
     // Zoom towards center
     const centerX = containerDimensions.width / 2
@@ -176,14 +152,13 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const newX = centerX - (centerX - position.x) * (newScale / scale)
     const newY = centerY - (centerY - position.y) * (newScale / scale)
     
-    const constrainedPosition = constrainPosition(newX, newY, newScale)
     setScale(newScale)
-    setPosition(constrainedPosition)
+    setPosition({ x: newX, y: newY })
   }
 
   const handleZoomOut = () => {
     const fitScale = calculateFitScale()
-    const newScale = Math.max(scale * 0.8, fitScale * 0.3)
+    const newScale = Math.max(scale * 0.8, fitScale * 0.1)
     
     // Zoom towards center
     const centerX = containerDimensions.width / 2
@@ -191,22 +166,21 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const newX = centerX - (centerX - position.x) * (newScale / scale)
     const newY = centerY - (centerY - position.y) * (newScale / scale)
     
-    const constrainedPosition = constrainPosition(newX, newY, newScale)
     setScale(newScale)
-    setPosition(constrainedPosition)
+    setPosition({ x: newX, y: newY })
   }
 
   const handleResetView = () => {
-    if (imageRef.current) {
-      const img = imageRef.current
-      const scaleX = containerDimensions.width / img.naturalWidth
-      const scaleY = containerDimensions.height / img.naturalHeight
-      const fitScale = Math.min(scaleX, scaleY, 1)
+    if (imageDimensions.width && imageDimensions.height && containerDimensions.width && containerDimensions.height) {
+      // Reset to fill view
+      const scaleX = containerDimensions.width / imageDimensions.width
+      const scaleY = containerDimensions.height / imageDimensions.height
+      const fitScale = Math.max(scaleX, scaleY)
       setScale(fitScale)
       
       // Center the image
-      const scaledWidth = img.naturalWidth * fitScale
-      const scaledHeight = img.naturalHeight * fitScale
+      const scaledWidth = imageDimensions.width * fitScale
+      const scaledHeight = imageDimensions.height * fitScale
       setPosition({
         x: (containerDimensions.width - scaledWidth) / 2,
         y: (containerDimensions.height - scaledHeight) / 2
@@ -302,10 +276,12 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     }
   }, [currentMapUrl, handleImageLoad])
 
-  // Auto-fit when container dimensions change
+  // Auto-fit when container dimensions change  
   useEffect(() => {
     if (currentMapUrl && imageDimensions.width && imageDimensions.height) {
-      const fitScale = calculateFitScale()
+      const scaleX = containerDimensions.width / imageDimensions.width
+      const scaleY = containerDimensions.height / imageDimensions.height
+      const fitScale = Math.max(scaleX, scaleY) // Fill container
       setScale(fitScale)
       
       // Center the image
@@ -316,7 +292,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
         y: (containerDimensions.height - scaledHeight) / 2
       })
     }
-  }, [containerDimensions, imageDimensions, calculateFitScale, currentMapUrl])
+  }, [containerDimensions, imageDimensions, currentMapUrl])
 
   // Save waypoints to localStorage whenever they change
   useEffect(() => {
