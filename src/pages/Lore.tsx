@@ -103,6 +103,8 @@ const Lore = () => {
 
   const handleUpdateEntry = async (updatedEntry: any) => {
     try {
+      const currentUser = await supabase.auth.getUser()
+      console.log('Current user ID:', currentUser.data.user?.id)
       console.log('Updating lore entry with ID:', updatedEntry.id)
       console.log('Update data:', updatedEntry)
       
