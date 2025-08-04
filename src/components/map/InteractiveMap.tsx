@@ -1,11 +1,19 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { WaypointIconSelector } from './WaypointIconSelector'
-import { Upload } from 'lucide-react'
+import { WaypointIconSelector, waypointCategories } from './WaypointIconSelector'
+import { Upload, ZoomIn, ZoomOut, RotateCcw, MapPin, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 interface InteractiveMapProps {
   mapUrl?: string
   onMapUpload?: (file: File) => void
 }
+
+const MAP_BORDER_SIZE = 2000 // Fixed border size
 
 export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   const [currentMapUrl, setCurrentMapUrl] = useState(mapUrl)
@@ -17,6 +25,14 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, startX: 0, startY: 0 })
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   const [containerDimensions, setContainerDimensions] = useState({ width: 0, height: 0 })
+  const [isWaypointDialogOpen, setIsWaypointDialogOpen] = useState(false)
+  const [newWaypointData, setNewWaypointData] = useState({ 
+    title: '', 
+    description: '', 
+    category: '', 
+    x: 0, 
+    y: 0 
+  })
 
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -36,30 +52,31 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     return () => window.removeEventListener('resize', updateContainerSize)
   }, [])
 
-  // Calculate scale to fit image within container
+  // Calculate scale to fit image within container with border constraints
   const calculateFitScale = useCallback(() => {
-    if (!imageDimensions.width || !imageDimensions.height || !containerDimensions.width || !containerDimensions.height) {
+    if (!containerDimensions.width || !containerDimensions.height) {
       return 1
     }
 
-    const scaleX = containerDimensions.width / imageDimensions.width
-    const scaleY = containerDimensions.height / imageDimensions.height
+    const scaleX = containerDimensions.width / MAP_BORDER_SIZE
+    const scaleY = containerDimensions.height / MAP_BORDER_SIZE
     return Math.min(scaleX, scaleY, 1) // Don't scale up beyond original size
-  }, [imageDimensions, containerDimensions])
+  }, [containerDimensions])
 
-  // Handle image load
+  // Handle image load with border snapping
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {
       const img = imageRef.current
-      setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight })
+      // Set dimensions to border size for consistent scaling
+      setImageDimensions({ width: MAP_BORDER_SIZE, height: MAP_BORDER_SIZE })
       
-      // Auto-fit image to container
+      // Auto-fit to container
       const fitScale = calculateFitScale()
       setScale(fitScale)
       
-      // Center the image
-      const scaledWidth = img.naturalWidth * fitScale
-      const scaledHeight = img.naturalHeight * fitScale
+      // Center the image within border
+      const scaledWidth = MAP_BORDER_SIZE * fitScale
+      const scaledHeight = MAP_BORDER_SIZE * fitScale
       setPosition({
         x: (containerDimensions.width - scaledWidth) / 2,
         y: (containerDimensions.height - scaledHeight) / 2
@@ -67,14 +84,12 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     }
   }, [calculateFitScale, containerDimensions])
 
-  // Constrain position to prevent image from going outside bounds
+  // Constrain position to prevent border from going outside container
   const constrainPosition = useCallback((newX: number, newY: number, currentScale: number) => {
-    if (!imageDimensions.width || !imageDimensions.height) return { x: newX, y: newY }
+    const scaledWidth = MAP_BORDER_SIZE * currentScale
+    const scaledHeight = MAP_BORDER_SIZE * currentScale
 
-    const scaledWidth = imageDimensions.width * currentScale
-    const scaledHeight = imageDimensions.height * currentScale
-
-    // Calculate bounds
+    // Calculate bounds to keep border within container
     const minX = Math.min(0, containerDimensions.width - scaledWidth)
     const maxX = Math.max(0, containerDimensions.width - scaledWidth)
     const minY = Math.min(0, containerDimensions.height - scaledHeight)
@@ -84,7 +99,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
       x: Math.max(minX, Math.min(maxX, newX)),
       y: Math.max(minY, Math.min(maxY, newY))
     }
-  }, [imageDimensions, containerDimensions])
+  }, [containerDimensions])
 
   // Handle wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -98,7 +113,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
 
     const delta = e.deltaY > 0 ? 0.9 : 1.1
     const fitScale = calculateFitScale()
-    const newScale = Math.max(fitScale * 0.5, Math.min(scale * delta, fitScale * 3)) // Constrain zoom range
+    const newScale = Math.max(fitScale * 0.3, Math.min(scale * delta, fitScale * 5)) // Wider zoom range
 
     // Calculate new position to zoom towards mouse
     const newX = mouseX - (mouseX - position.x) * (newScale / scale)
@@ -136,6 +151,52 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     setIsDragging(false)
   }, [])
 
+  // Zoom control functions
+  const handleZoomIn = () => {
+    const fitScale = calculateFitScale()
+    const newScale = Math.min(scale * 1.2, fitScale * 5)
+    setScale(newScale)
+    
+    // Keep image centered when zooming
+    const scaledWidth = MAP_BORDER_SIZE * newScale
+    const scaledHeight = MAP_BORDER_SIZE * newScale
+    const newPosition = constrainPosition(
+      (containerDimensions.width - scaledWidth) / 2,
+      (containerDimensions.height - scaledHeight) / 2,
+      newScale
+    )
+    setPosition(newPosition)
+  }
+
+  const handleZoomOut = () => {
+    const fitScale = calculateFitScale()
+    const newScale = Math.max(scale * 0.8, fitScale * 0.3)
+    setScale(newScale)
+    
+    // Keep image centered when zooming
+    const scaledWidth = MAP_BORDER_SIZE * newScale
+    const scaledHeight = MAP_BORDER_SIZE * newScale
+    const newPosition = constrainPosition(
+      (containerDimensions.width - scaledWidth) / 2,
+      (containerDimensions.height - scaledHeight) / 2,
+      newScale
+    )
+    setPosition(newPosition)
+  }
+
+  const handleResetView = () => {
+    const fitScale = calculateFitScale()
+    setScale(fitScale)
+    
+    // Center the image
+    const scaledWidth = MAP_BORDER_SIZE * fitScale
+    const scaledHeight = MAP_BORDER_SIZE * fitScale
+    setPosition({
+      x: (containerDimensions.width - scaledWidth) / 2,
+      y: (containerDimensions.height - scaledHeight) / 2
+    })
+  }
+
   // Handle map click for waypoint placement
   const handleMapClick = useCallback((e: React.MouseEvent) => {
     if (isDragging || !currentMapUrl || !selectedWaypointType) return
@@ -143,33 +204,47 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
 
-    // Calculate relative position within the image
+    // Calculate relative position within the border
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
     
-    // Convert to image coordinates
-    const imageX = (clickX - position.x) / scale
-    const imageY = (clickY - position.y) / scale
+    // Convert to border coordinates
+    const borderX = (clickX - position.x) / scale
+    const borderY = (clickY - position.y) / scale
     
     // Convert to percentage for storage
-    const xPercent = (imageX / imageDimensions.width) * 100
-    const yPercent = (imageY / imageDimensions.height) * 100
+    const xPercent = (borderX / MAP_BORDER_SIZE) * 100
+    const yPercent = (borderY / MAP_BORDER_SIZE) * 100
 
-    // Only place if within image bounds
+    // Only place if within border bounds
     if (xPercent >= 0 && xPercent <= 100 && yPercent >= 0 && yPercent <= 100) {
-      // Add waypoint to local state
-      const newWaypoint = {
-        id: Date.now().toString(),
-        x_position: xPercent,
-        y_position: yPercent,
+      // Store coordinates and open dialog
+      setNewWaypointData({
+        title: '',
+        description: '',
         category: selectedWaypointType,
-        title: `Waypoint ${waypoints.length + 1}`,
-        description: 'New waypoint'
-      }
-      setWaypoints(prev => [...prev, newWaypoint])
+        x: xPercent,
+        y: yPercent
+      })
+      setIsWaypointDialogOpen(true)
       setSelectedWaypointType(null)
     }
-  }, [isDragging, currentMapUrl, selectedWaypointType, position, scale, imageDimensions, waypoints])
+  }, [isDragging, currentMapUrl, selectedWaypointType, position, scale])
+
+  // Handle waypoint creation
+  const handleCreateWaypoint = () => {
+    const newWaypoint = {
+      id: Date.now().toString(),
+      x_position: newWaypointData.x,
+      y_position: newWaypointData.y,
+      category: newWaypointData.category,
+      title: newWaypointData.title || `Waypoint ${waypoints.length + 1}`,
+      description: newWaypointData.description || 'New waypoint'
+    }
+    setWaypoints(prev => [...prev, newWaypoint])
+    setIsWaypointDialogOpen(false)
+    setNewWaypointData({ title: '', description: '', category: '', x: 0, y: 0 })
+  }
 
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,19 +268,19 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
 
   // Auto-fit when container dimensions change
   useEffect(() => {
-    if (currentMapUrl && imageDimensions.width && imageDimensions.height) {
+    if (currentMapUrl) {
       const fitScale = calculateFitScale()
       setScale(fitScale)
       
-      // Center the image
-      const scaledWidth = imageDimensions.width * fitScale
-      const scaledHeight = imageDimensions.height * fitScale
+      // Center the border
+      const scaledWidth = MAP_BORDER_SIZE * fitScale
+      const scaledHeight = MAP_BORDER_SIZE * fitScale
       setPosition({
         x: (containerDimensions.width - scaledWidth) / 2,
         y: (containerDimensions.height - scaledHeight) / 2
       })
     }
-  }, [containerDimensions, imageDimensions, calculateFitScale, currentMapUrl])
+  }, [containerDimensions, calculateFitScale, currentMapUrl])
 
   if (!currentMapUrl) {
     return (
@@ -265,11 +340,9 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
       
       {/* Render waypoints */}
       {waypoints?.map((waypoint) => {
-        if (!imageDimensions.width || !imageDimensions.height) return null
-        
-        // Calculate waypoint position in pixels
-        const waypointX = position.x + (waypoint.x_position / 100) * imageDimensions.width * scale
-        const waypointY = position.y + (waypoint.y_position / 100) * imageDimensions.height * scale
+        // Calculate waypoint position in pixels within border
+        const waypointX = position.x + (waypoint.x_position / 100) * MAP_BORDER_SIZE * scale
+        const waypointY = position.y + (waypoint.y_position / 100) * MAP_BORDER_SIZE * scale
         
         return (
           <div
@@ -288,17 +361,133 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
               category={waypoint.category || 'location'} 
               className="w-6 h-6 text-primary drop-shadow-lg" 
             />
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-background/90 border border-border rounded px-2 py-1 text-xs whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity z-20">
+              {waypoint.title}
+            </div>
           </div>
         )
       })}
       
+      {/* Control buttons */}
+      <div className="absolute top-2 left-2 flex flex-col gap-2 z-30">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleZoomIn}
+          className="bg-background/80 hover:bg-background"
+        >
+          <ZoomIn className="w-4 h-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleZoomOut}
+          className="bg-background/80 hover:bg-background"
+        >
+          <ZoomOut className="w-4 h-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleResetView}
+          className="bg-background/80 hover:bg-background"
+        >
+          <RotateCcw className="w-4 h-4" />
+        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-background/80 hover:bg-background"
+            >
+              <MapPin className="w-4 h-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Waypoint</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="waypoint-type">Waypoint Type</Label>
+                <Select
+                  value={selectedWaypointType || ''}
+                  onValueChange={setSelectedWaypointType}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select waypoint type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {waypointCategories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>
+                        <div className="flex items-center gap-2">
+                          <category.icon className={`w-4 h-4 ${category.color}`} />
+                          {category.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedWaypointType && (
+                <p className="text-sm text-muted-foreground">
+                  Select a waypoint type above, then click on the map to place it.
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Upload button overlay */}
       <button
         onClick={() => fileInputRef.current?.click()}
-        className="absolute top-2 right-2 px-3 py-1 bg-background/80 border border-border rounded-md text-sm hover:bg-background transition-colors"
+        className="absolute top-2 right-2 px-3 py-1 bg-background/80 border border-border rounded-md text-sm hover:bg-background transition-colors z-30"
       >
         Change Map
       </button>
+
+      {/* Waypoint creation dialog */}
+      <Dialog open={isWaypointDialogOpen} onOpenChange={setIsWaypointDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Waypoint</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="waypoint-title">Title</Label>
+              <Input
+                id="waypoint-title"
+                value={newWaypointData.title}
+                onChange={(e) => setNewWaypointData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter waypoint title"
+              />
+            </div>
+            <div>
+              <Label htmlFor="waypoint-description">Description</Label>
+              <Textarea
+                id="waypoint-description"
+                value={newWaypointData.description}
+                onChange={(e) => setNewWaypointData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe this location..."
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsWaypointDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCreateWaypoint}>
+                Create Waypoint
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
