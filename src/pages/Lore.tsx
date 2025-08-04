@@ -114,9 +114,10 @@ const Lore = () => {
         })
         .eq('id', updatedEntry.id)
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) throw error
+      if (!data) throw new Error('No record found to update')
       setLoreEntries(prev => prev.map(entry => 
         entry.id === updatedEntry.id ? data : entry
       ))
