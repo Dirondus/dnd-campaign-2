@@ -4,9 +4,19 @@ type TableName = 'groups' | 'lore_entries' | 'npcs' | 'monsters' | 'sessions'
 
 export const saveToSupabase = async (table: TableName, data: any) => {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('You must be logged in to create entries')
+    }
+
+    const dataWithUser = {
+      ...data,
+      created_by: user.id
+    }
+
     const { data: result, error } = await supabase
       .from(table)
-      .insert(data)
+      .insert(dataWithUser)
       .select()
       .single()
     
