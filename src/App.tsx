@@ -12,6 +12,7 @@ import WorldMap from "./pages/WorldMap";
 import NPCs from "./pages/NPCs";
 import Monsters from "./pages/Monsters";
 import CampaignTools from "./pages/CampaignTools";
+import Players from "./pages/Players";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/map" element={<WorldMap />} />
               <Route path="/npcs" element={<NPCs />} />
               <Route path="/monsters" element={<Monsters />} />
+              <Route path="/players" element={<Players />} />
               <Route path="/tools" element={<CampaignTools />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 
-type TableName = 'groups' | 'lore_entries' | 'npcs' | 'monsters' | 'sessions'
+type TableName = 'groups' | 'lore_entries' | 'npcs' | 'monsters' | 'sessions' | 'players'
 
 export const saveToSupabase = async (table: TableName, data: any) => {
   try {

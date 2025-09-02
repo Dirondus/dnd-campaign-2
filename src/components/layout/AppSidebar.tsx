@@ -5,7 +5,8 @@ import {
   UserCheck, 
   Skull, 
   Home,
-  Wand2
+  Wand2,
+  FileText
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -29,6 +30,7 @@ const navigationItems = [
   { title: "World Map", url: "/map", icon: Map },
   { title: "NPCs", url: "/npcs", icon: UserCheck },
   { title: "Monsters", url: "/monsters", icon: Skull },
+  { title: "Players", url: "/players", icon: FileText },
 ]
 
 const campaignItems = [
