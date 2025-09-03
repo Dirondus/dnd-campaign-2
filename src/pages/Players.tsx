@@ -9,10 +9,15 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Eye, Edit, Trash2, FileText, Upload } from 'lucide-react';
 
+interface PdfObject {
+  name: string;
+  url: string;
+}
+
 interface Player {
   id: string;
-  name: string;
-  pdf_urls?: string[];
+  name: string;  
+  pdf_urls?: PdfObject[];
   created_at: string;
   created_by: string;
 }
@@ -38,11 +43,11 @@ export default function Players() {
 
       if (error) throw error;
       
-      // Convert pdf_urls from Json to string[] and handle null values
+      // Convert pdf_urls from Json to PdfObject[] and handle null values
       const playersWithPdfUrls = (data || []).map(player => ({
         ...player,
         pdf_urls: Array.isArray(player.pdf_urls) 
-          ? (player.pdf_urls as string[])
+          ? (player.pdf_urls as unknown as PdfObject[])
           : []
       }));
       
@@ -87,7 +92,7 @@ export default function Players() {
 
       // Also delete the PDFs from storage if they exist
       if (player.pdf_urls && player.pdf_urls.length > 0) {
-        const filePaths = player.pdf_urls.map(url => url.split('/').pop()).filter(Boolean);
+        const filePaths = player.pdf_urls.map(pdf => pdf.url.split('/').pop()).filter(Boolean);
         if (filePaths.length > 0) {
           await supabase.storage
             .from('player-pdfs')
@@ -128,7 +133,7 @@ export default function Players() {
     handleFormClose();
   };
 
-  const uploadPDFs = async (files: FileList, playerId: string): Promise<string[]> => {
+  const uploadPDFs = async (files: FileList, playerId: string): Promise<PdfObject[]> => {
     const uploadPromises = Array.from(files).map(async (file) => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -146,7 +151,10 @@ export default function Players() {
         .from('player-pdfs')
         .getPublicUrl(filePath);
 
-      return publicUrl;
+      return {
+        name: file.name.replace('.pdf', ''),
+        url: publicUrl
+      };
     });
 
     return Promise.all(uploadPromises);
@@ -181,7 +189,7 @@ export default function Players() {
 
       const { error } = await supabase
         .from('players')
-        .update({ pdf_urls: updatedPdfUrls })
+        .update({ pdf_urls: updatedPdfUrls as any })
         .eq('id', player.id);
 
       if (error) throw error;
@@ -260,15 +268,15 @@ export default function Players() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-2">
-                {player.pdf_urls && player.pdf_urls.map((pdfUrl, index) => (
+                {player.pdf_urls && player.pdf_urls.map((pdfObj, index) => (
                   <Button
                     key={index}
                     size="sm"
                     variant="outline"
-                    onClick={() => setViewingPDF(pdfUrl)}
+                    onClick={() => setViewingPDF(pdfObj.url)}
                   >
                     <Eye className="mr-2 h-4 w-4" />
-                    PDF {index + 1}
+                    {pdfObj.name}
                   </Button>
                 ))}
               </div>

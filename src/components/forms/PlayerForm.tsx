@@ -27,6 +27,11 @@ const playerSchema = z.object({
 
 type PlayerFormData = z.infer<typeof playerSchema>;
 
+interface PdfObject {
+  name: string;
+  url: string;
+}
+
 interface PlayerFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,7 +39,7 @@ interface PlayerFormProps {
   player?: {
     id: string;
     name: string;
-    pdf_urls?: string[];
+    pdf_urls?: PdfObject[];
   };
 }
 
@@ -65,7 +70,7 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
     checkAdminStatus();
   }, []);
 
-  const uploadPDFs = async (files: FileList): Promise<string[]> => {
+  const uploadPDFs = async (files: FileList): Promise<PdfObject[]> => {
     const uploadPromises = Array.from(files).map(async (file) => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -83,7 +88,10 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
         .from('player-pdfs')
         .getPublicUrl(filePath);
 
-      return publicUrl;
+      return {
+        name: file.name.replace('.pdf', ''),
+        url: publicUrl
+      };
     });
 
     return Promise.all(uploadPromises);
@@ -108,7 +116,7 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
 
       const playerData = {
         name: data.name,
-        pdf_urls: pdfUrls,
+        pdf_urls: pdfUrls as any,
       };
 
       if (player) {
@@ -152,21 +160,21 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
     }
   };
 
-  const removePdf = async (pdfUrl: string) => {
+  const removePdf = async (pdfObj: PdfObject) => {
     if (!player || !isAdmin) return;
     
     try {
-      const updatedPdfUrls = (player.pdf_urls || []).filter(url => url !== pdfUrl);
+      const updatedPdfUrls = (player.pdf_urls || []).filter(pdf => pdf.url !== pdfObj.url);
       
       const { error } = await supabase
         .from('players')
-        .update({ pdf_urls: updatedPdfUrls })
+        .update({ pdf_urls: updatedPdfUrls as any })
         .eq('id', player.id);
 
       if (error) throw error;
 
       // Delete from storage
-      const filePath = pdfUrl.split('/').pop();
+      const filePath = pdfObj.url.split('/').pop();
       if (filePath) {
         await supabase.storage
           .from('player-pdfs')
@@ -184,6 +192,37 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
       toast({
         title: 'Error',
         description: 'Failed to remove PDF',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const renamePdf = async (pdfObj: PdfObject, newName: string) => {
+    if (!player || !isAdmin || !newName.trim()) return;
+    
+    try {
+      const updatedPdfUrls = (player.pdf_urls || []).map(pdf => 
+        pdf.url === pdfObj.url ? { ...pdf, name: newName.trim() } : pdf
+      );
+      
+      const { error } = await supabase
+        .from('players')
+        .update({ pdf_urls: updatedPdfUrls as any })
+        .eq('id', player.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'PDF renamed successfully',
+      });
+      
+      onSuccess();
+    } catch (error) {
+      console.error('Failed to rename PDF:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to rename PDF',
         variant: 'destructive',
       });
     }
@@ -215,23 +254,40 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
             {player && player.pdf_urls && player.pdf_urls.length > 0 && (
               <div className="space-y-2">
                 <FormLabel>Existing PDFs</FormLabel>
-                <div className="flex flex-wrap gap-2">
-                  {player.pdf_urls.map((pdfUrl, index) => (
-                    <div key={index} className="flex items-center">
-                      <Badge variant="secondary" className="flex items-center gap-2">
-                        PDF {index + 1}
-                        {isAdmin && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => removePdf(pdfUrl)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </Badge>
+                <div className="space-y-2">
+                  {player.pdf_urls.map((pdfObj, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      {isAdmin ? (
+                        <Input
+                          defaultValue={pdfObj.name}
+                          onBlur={(e) => {
+                            if (e.target.value !== pdfObj.name) {
+                              renamePdf(pdfObj, e.target.value);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          className="flex-1"
+                        />
+                      ) : (
+                        <Badge variant="secondary" className="flex-1">
+                          {pdfObj.name}
+                        </Badge>
+                      )}
+                      {isAdmin && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => removePdf(pdfObj)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
