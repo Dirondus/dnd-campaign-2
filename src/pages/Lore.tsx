@@ -45,10 +45,23 @@ const Lore = () => {
   const [worldBuilderOpen, setWorldBuilderOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [editingEntry, setEditingEntry] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     fetchLoreEntries()
+    checkAdminStatus()
   }, [])
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const adminUUIDs = [
+        '97d19cec-8106-44ef-9a6e-4fb1d9a2e78a',
+        'e4eceed4-c78d-4fb0-ba45-92a4cbaecae7'
+      ];
+      setIsAdmin(adminUUIDs.includes(user.id));
+    }
+  };
 
   const fetchLoreEntries = async () => {
     try {
@@ -186,13 +199,15 @@ const Lore = () => {
             searchFields={['title', 'content', 'summary', 'tags']}
             placeholder="Search lore entries..."
           />
-          <Button 
-            onClick={() => setLoreFormOpen(true)}
-            className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Entry
-          </Button>
+          {isAdmin && (
+            <Button 
+              onClick={() => setLoreFormOpen(true)}
+              className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Entry
+            </Button>
+          )}
         </div>
       </div>
 

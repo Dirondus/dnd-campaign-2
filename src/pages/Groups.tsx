@@ -17,10 +17,23 @@ const Groups = () => {
   const [sessionsDialogOpen, setSessionsDialogOpen] = useState(false)
   const [editingGroup, setEditingGroup] = useState<any>(null)
   const [selectedGroupForSessions, setSelectedGroupForSessions] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     fetchGroups()
+    checkAdminStatus()
   }, [])
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const adminUUIDs = [
+        '97d19cec-8106-44ef-9a6e-4fb1d9a2e78a',
+        'e4eceed4-c78d-4fb0-ba45-92a4cbaecae7'
+      ];
+      setIsAdmin(adminUUIDs.includes(user.id));
+    }
+  };
 
   const fetchGroups = async () => {
     try {
@@ -170,13 +183,15 @@ const Groups = () => {
             searchFields={['name', 'description', 'members.name']}
             placeholder="Search groups..."
           />
-          <Button 
-            onClick={() => setGroupFormOpen(true)}
-            className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Group
-          </Button>
+          {isAdmin && (
+            <Button 
+              onClick={() => setGroupFormOpen(true)}
+              className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Group
+            </Button>
+          )}
         </div>
       </div>
 
@@ -189,13 +204,15 @@ const Groups = () => {
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 Start by creating your first adventuring group. Add party members, track their progress, and manage sessions.
               </p>
-              <Button 
-                onClick={() => setGroupFormOpen(true)}
-                className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Group
-              </Button>
+              {isAdmin && (
+                <Button 
+                  onClick={() => setGroupFormOpen(true)}
+                  className="bg-gradient-primary text-primary-foreground shadow-magical hover:shadow-glow-primary transition-glow"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Group
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (

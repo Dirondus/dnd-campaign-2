@@ -46,6 +46,7 @@ interface PlayerFormProps {
 export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerFormProps) {
   const [uploading, setUploading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [editedPdfs, setEditedPdfs] = useState<PdfObject[]>([]);
   const { toast } = useToast();
 
   const form = useForm<PlayerFormData>({
@@ -54,6 +55,17 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
       name: player?.name || "",
     },
   });
+
+  useEffect(() => {
+    if (player?.pdf_urls) {
+      setEditedPdfs([...player.pdf_urls]);
+    } else {
+      setEditedPdfs([]);
+    }
+    form.reset({
+      name: player?.name || "",
+    });
+  }, [player, form]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -106,7 +118,7 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
         throw new Error('You must be logged in to create a player');
       }
 
-      let pdfUrls = player?.pdf_urls || [];
+      let pdfUrls = editedPdfs;
 
       // Upload PDFs if provided and user is admin
       if (data.pdfs && data.pdfs.length > 0 && isAdmin) {
@@ -160,72 +172,16 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
     }
   };
 
-  const removePdf = async (pdfObj: PdfObject) => {
-    if (!player || !isAdmin) return;
-    
-    try {
-      const updatedPdfUrls = (player.pdf_urls || []).filter(pdf => pdf.url !== pdfObj.url);
-      
-      const { error } = await supabase
-        .from('players')
-        .update({ pdf_urls: updatedPdfUrls as any })
-        .eq('id', player.id);
-
-      if (error) throw error;
-
-      // Delete from storage
-      const filePath = pdfObj.url.split('/').pop();
-      if (filePath) {
-        await supabase.storage
-          .from('player-pdfs')
-          .remove([filePath]);
-      }
-
-      toast({
-        title: 'Success',
-        description: 'PDF removed successfully',
-      });
-      
-      onSuccess();
-    } catch (error) {
-      console.error('Failed to remove PDF:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to remove PDF',
-        variant: 'destructive',
-      });
-    }
+  const removePdf = (pdfObj: PdfObject) => {
+    if (!isAdmin) return;
+    setEditedPdfs(prev => prev.filter(pdf => pdf.url !== pdfObj.url));
   };
 
-  const renamePdf = async (pdfObj: PdfObject, newName: string) => {
-    if (!player || !isAdmin || !newName.trim()) return;
-    
-    try {
-      const updatedPdfUrls = (player.pdf_urls || []).map(pdf => 
-        pdf.url === pdfObj.url ? { ...pdf, name: newName.trim() } : pdf
-      );
-      
-      const { error } = await supabase
-        .from('players')
-        .update({ pdf_urls: updatedPdfUrls as any })
-        .eq('id', player.id);
-
-      if (error) throw error;
-
-      toast({
-        title: 'Success',
-        description: 'PDF renamed successfully',
-      });
-      
-      onSuccess();
-    } catch (error) {
-      console.error('Failed to rename PDF:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to rename PDF',
-        variant: 'destructive',
-      });
-    }
+  const renamePdf = (pdfObj: PdfObject, newName: string) => {
+    if (!isAdmin || !newName.trim()) return;
+    setEditedPdfs(prev => prev.map(pdf => 
+      pdf.url === pdfObj.url ? { ...pdf, name: newName.trim() } : pdf
+    ));
   };
 
   return (
@@ -251,25 +207,16 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
             />
 
             {/* Show existing PDFs if editing */}
-            {player && player.pdf_urls && player.pdf_urls.length > 0 && (
+            {editedPdfs.length > 0 && (
               <div className="space-y-2">
                 <FormLabel>Existing PDFs</FormLabel>
                 <div className="space-y-2">
-                  {player.pdf_urls.map((pdfObj, index) => (
+                  {editedPdfs.map((pdfObj, index) => (
                     <div key={index} className="flex items-center gap-2">
                       {isAdmin ? (
                         <Input
-                          defaultValue={pdfObj.name}
-                          onBlur={(e) => {
-                            if (e.target.value !== pdfObj.name) {
-                              renamePdf(pdfObj, e.target.value);
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.currentTarget.blur();
-                            }
-                          }}
+                          value={pdfObj.name}
+                          onChange={(e) => renamePdf(pdfObj, e.target.value)}
                           className="flex-1"
                         />
                       ) : (
