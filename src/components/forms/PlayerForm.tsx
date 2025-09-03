@@ -54,12 +54,12 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
     const checkAdminStatus = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        setIsAdmin(profile?.role === 'admin');
+        // Check if user is one of the hardcoded admin UUIDs from RLS policy
+        const adminUUIDs = [
+          '97d19cec-8106-44ef-9a6e-4fb1d9a2e78a',
+          'e4eceed4-c78d-4fb0-ba45-92a4cbaecae7'
+        ];
+        setIsAdmin(adminUUIDs.includes(user.id));
       }
     };
     checkAdminStatus();
