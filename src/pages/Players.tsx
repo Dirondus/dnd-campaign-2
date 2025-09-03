@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { PlayerForm } from '@/components/forms/PlayerForm';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import { Plus, Eye, Edit, Trash2, FileText, Upload } from 'lucide-react';
 
 interface Player {
   id: string;
@@ -24,6 +24,9 @@ export default function Players() {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [deletingPlayer, setDeletingPlayer] = useState<Player | null>(null);
   const [viewingPDF, setViewingPDF] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const { toast } = useToast();
 
   const loadPlayers = async () => {
@@ -58,7 +61,20 @@ export default function Players() {
 
   useEffect(() => {
     loadPlayers();
+    checkAdminStatus();
   }, []);
+
+  const checkAdminStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Check if user is one of the hardcoded admin UUIDs from RLS policy
+      const adminUUIDs = [
+        '97d19cec-8106-44ef-9a6e-4fb1d9a2e78a',
+        'e4eceed4-c78d-4fb0-ba45-92a4cbaecae7'
+      ];
+      setIsAdmin(adminUUIDs.includes(user.id));
+    }
+  };
 
   const handleDelete = async (player: Player) => {
     try {
@@ -110,6 +126,87 @@ export default function Players() {
   const handleFormSuccess = () => {
     loadPlayers();
     handleFormClose();
+  };
+
+  const uploadPDFs = async (files: FileList, playerId: string): Promise<string[]> => {
+    const uploadPromises = Array.from(files).map(async (file) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = fileName;
+
+      const { error: uploadError } = await supabase.storage
+        .from('player-pdfs')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('player-pdfs')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    });
+
+    return Promise.all(uploadPromises);
+  };
+
+  const handleFileUpload = async (files: FileList, player: Player) => {
+    if (!isAdmin) return;
+    
+    try {
+      setUploading(player.id);
+      
+      // Validate file types
+      const validFiles = Array.from(files).filter(file => file.type === 'application/pdf');
+      if (validFiles.length === 0) {
+        toast({
+          title: 'Error',
+          description: 'Please select PDF files only',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      if (validFiles.length !== files.length) {
+        toast({
+          title: 'Warning',
+          description: 'Only PDF files were uploaded. Other file types were ignored.',
+        });
+      }
+
+      const newPdfUrls = await uploadPDFs(validFiles as any, player.id);
+      const updatedPdfUrls = [...(player.pdf_urls || []), ...newPdfUrls];
+
+      const { error } = await supabase
+        .from('players')
+        .update({ pdf_urls: updatedPdfUrls })
+        .eq('id', player.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: `${validFiles.length} PDF${validFiles.length > 1 ? 's' : ''} uploaded successfully`
+      });
+
+      loadPlayers();
+      
+      // Reset file input
+      if (fileInputRefs.current[player.id]) {
+        fileInputRefs.current[player.id]!.value = '';
+      }
+    } catch (error) {
+      console.error('Failed to upload PDFs:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload PDFs',
+        variant: 'destructive'
+      });
+    } finally {
+      setUploading(null);
+    }
   };
 
   if (loading) {
@@ -176,6 +273,28 @@ export default function Players() {
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
+                {isAdmin && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      multiple
+                      ref={(el) => fileInputRefs.current[player.id] = el}
+                      onChange={(e) => e.target.files && handleFileUpload(e.target.files, player)}
+                      className="hidden"
+                      id={`upload-${player.id}`}
+                    />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={uploading === player.id}
+                      onClick={() => fileInputRefs.current[player.id]?.click()}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {uploading === player.id ? 'Uploading...' : 'Upload PDFs'}
+                    </Button>
+                  </div>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
@@ -184,14 +303,16 @@ export default function Players() {
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setDeletingPlayer(player)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setDeletingPlayer(player)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
