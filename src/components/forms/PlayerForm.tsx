@@ -1,22 +1,28 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { getCurrentUser } from '@/lib/supabase-storage';
-import { X } from 'lucide-react';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 
 const playerSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  pdfFile: z.instanceof(File).optional().refine((file) => {
-    if (!file) return true;
-    return file.type === 'application/pdf';
-  }, 'Only PDF files are allowed')
+  name: z.string().min(1, "Name is required"),
+  pdfs: z
+    .instanceof(FileList)
+    .optional()
+    .refine(
+      (files) => {
+        if (!files || files.length === 0) return true;
+        return Array.from(files).every(file => file.type === "application/pdf");
+      },
+      "All files must be PDFs"
+    ),
 });
 
 type PlayerFormData = z.infer<typeof playerSchema>;
@@ -28,109 +34,158 @@ interface PlayerFormProps {
   player?: {
     id: string;
     name: string;
-    pdf_url?: string;
+    pdf_urls?: string[];
   };
 }
 
 export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerFormProps) {
   const [uploading, setUploading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
-  
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-    watch
-  } = useForm<PlayerFormData>({
+
+  const form = useForm<PlayerFormData>({
     resolver: zodResolver(playerSchema),
     defaultValues: {
-      name: player?.name || '',
-    }
+      name: player?.name || "",
+    },
   });
 
-  const selectedFile = watch('pdfFile');
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        setIsAdmin(profile?.role === 'admin');
+      }
+    };
+    checkAdminStatus();
+  }, []);
 
-  const uploadPDF = async (file: File, userId: string) => {
-    const fileExt = 'pdf';
-    const fileName = `${userId}/${Date.now()}.${fileExt}`;
-    
-    const { data, error } = await supabase.storage
-      .from('player-pdfs')
-      .upload(fileName, file);
+  const uploadPDFs = async (files: FileList): Promise<string[]> => {
+    const uploadPromises = Array.from(files).map(async (file) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = fileName;
 
-    if (error) throw error;
+      const { error: uploadError } = await supabase.storage
+        .from('player-pdfs')
+        .upload(filePath, file);
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('player-pdfs')
-      .getPublicUrl(fileName);
+      if (uploadError) {
+        throw uploadError;
+      }
 
-    return publicUrl;
+      const { data: { publicUrl } } = supabase.storage
+        .from('player-pdfs')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    });
+
+    return Promise.all(uploadPromises);
   };
 
   const onSubmit = async (data: PlayerFormData) => {
     try {
       setUploading(true);
-      const user = await getCurrentUser();
+
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast({
-          title: 'Error',
-          description: 'You must be logged in to create players',
-          variant: 'destructive'
-        });
-        return;
+        throw new Error('You must be logged in to create a player');
       }
 
-      let pdfUrl = player?.pdf_url;
+      let pdfUrls = player?.pdf_urls || [];
 
-      if (data.pdfFile) {
-        pdfUrl = await uploadPDF(data.pdfFile, user.id);
+      // Upload PDFs if provided and user is admin
+      if (data.pdfs && data.pdfs.length > 0 && isAdmin) {
+        const newPdfUrls = await uploadPDFs(data.pdfs);
+        pdfUrls = [...pdfUrls, ...newPdfUrls];
       }
 
       const playerData = {
         name: data.name,
-        pdf_url: pdfUrl,
-        created_by: user.id
+        pdf_urls: pdfUrls,
       };
 
       if (player) {
+        // Update existing player
         const { error } = await supabase
           .from('players')
           .update(playerData)
           .eq('id', player.id);
 
         if (error) throw error;
-        
+
         toast({
           title: 'Success',
-          description: 'Player updated successfully'
+          description: 'Player updated successfully',
         });
       } else {
+        // Create new player
         const { error } = await supabase
           .from('players')
           .insert(playerData);
 
         if (error) throw error;
-        
+
         toast({
           title: 'Success',
-          description: 'Player created successfully'
+          description: 'Player created successfully',
         });
       }
 
-      reset();
+      form.reset();
       onSuccess();
-      onOpenChange(false);
     } catch (error) {
-      console.error('Error saving player:', error);
+      console.error('Failed to save player:', error);
       toast({
         title: 'Error',
         description: 'Failed to save player',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const removePdf = async (pdfUrl: string) => {
+    if (!player || !isAdmin) return;
+    
+    try {
+      const updatedPdfUrls = (player.pdf_urls || []).filter(url => url !== pdfUrl);
+      
+      const { error } = await supabase
+        .from('players')
+        .update({ pdf_urls: updatedPdfUrls })
+        .eq('id', player.id);
+
+      if (error) throw error;
+
+      // Delete from storage
+      const filePath = pdfUrl.split('/').pop();
+      if (filePath) {
+        await supabase.storage
+          .from('player-pdfs')
+          .remove([filePath]);
+      }
+
+      toast({
+        title: 'Success',
+        description: 'PDF removed successfully',
+      });
+      
+      onSuccess();
+    } catch (error) {
+      console.error('Failed to remove PDF:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove PDF',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -140,60 +195,86 @@ export function PlayerForm({ open, onOpenChange, onSuccess, player }: PlayerForm
         <DialogHeader>
           <DialogTitle>{player ? 'Edit Player' : 'Create Player'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Player Name</Label>
-            <Input
-              id="name"
-              {...register('name')}
-              placeholder="Enter player name"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Player Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter player name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            {errors.name && (
-              <p className="text-sm text-destructive mt-1">{errors.name.message}</p>
-            )}
-          </div>
 
-          <div>
-            <Label htmlFor="pdf">PDF File</Label>
-            <Input
-              id="pdf"
-              type="file"
-              accept=".pdf"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setValue('pdfFile', file);
-                }
-              }}
-            />
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Selected: {selectedFile.name}
-              </p>
+            {/* Show existing PDFs if editing */}
+            {player && player.pdf_urls && player.pdf_urls.length > 0 && (
+              <div className="space-y-2">
+                <FormLabel>Existing PDFs</FormLabel>
+                <div className="flex flex-wrap gap-2">
+                  {player.pdf_urls.map((pdfUrl, index) => (
+                    <div key={index} className="flex items-center">
+                      <Badge variant="secondary" className="flex items-center gap-2">
+                        PDF {index + 1}
+                        {isAdmin && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => removePdf(pdfUrl)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-            {player?.pdf_url && !selectedFile && (
-              <p className="text-sm text-muted-foreground mt-1">
-                Current PDF attached
-              </p>
-            )}
-            {errors.pdfFile && (
-              <p className="text-sm text-destructive mt-1">{errors.pdfFile.message}</p>
-            )}
-          </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={uploading}>
-              {uploading ? 'Saving...' : player ? 'Update' : 'Create'}
-            </Button>
-          </div>
-        </form>
+            {isAdmin && (
+              <FormField
+                control={form.control}
+                name="pdfs"
+                render={({ field: { value, onChange, ...field } }) => (
+                  <FormItem>
+                    <FormLabel>Add PDF Files (Admin Only)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        accept=".pdf"
+                        multiple
+                        onChange={(e) => onChange(e.target.files)}
+                        {...field}
+                        value={undefined}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? 'Saving...' : player ? 'Update Player' : 'Create Player'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

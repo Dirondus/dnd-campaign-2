@@ -12,7 +12,7 @@ import { Plus, Eye, Edit, Trash2, FileText } from 'lucide-react';
 interface Player {
   id: string;
   name: string;
-  pdf_url?: string;
+  pdf_urls?: string[];
   created_at: string;
   created_by: string;
 }
@@ -34,7 +34,16 @@ export default function Players() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPlayers(data || []);
+      
+      // Convert pdf_urls from Json to string[] and handle null values
+      const playersWithPdfUrls = (data || []).map(player => ({
+        ...player,
+        pdf_urls: Array.isArray(player.pdf_urls) 
+          ? (player.pdf_urls as string[])
+          : []
+      }));
+      
+      setPlayers(playersWithPdfUrls);
     } catch (error) {
       console.error('Failed to load players:', error);
       toast({
@@ -60,13 +69,13 @@ export default function Players() {
 
       if (error) throw error;
 
-      // Also delete the PDF from storage if it exists
-      if (player.pdf_url) {
-        const filePath = player.pdf_url.split('/').pop();
-        if (filePath) {
+      // Also delete the PDFs from storage if they exist
+      if (player.pdf_urls && player.pdf_urls.length > 0) {
+        const filePaths = player.pdf_urls.map(url => url.split('/').pop()).filter(Boolean);
+        if (filePaths.length > 0) {
           await supabase.storage
             .from('player-pdfs')
-            .remove([filePath]);
+            .remove(filePaths);
         }
       }
 
@@ -144,26 +153,29 @@ export default function Players() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span className="truncate">{player.name}</span>
-                {player.pdf_url && (
+                {player.pdf_urls && player.pdf_urls.length > 0 && (
                   <Badge variant="secondary" className="ml-2 flex-shrink-0">
                     <FileText className="mr-1 h-3 w-3" />
-                    PDF
+                    {player.pdf_urls.length} PDF{player.pdf_urls.length > 1 ? 's' : ''}
                   </Badge>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {player.pdf_url && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {player.pdf_urls && player.pdf_urls.map((pdfUrl, index) => (
                   <Button
+                    key={index}
                     size="sm"
                     variant="outline"
-                    onClick={() => setViewingPDF(player.pdf_url!)}
+                    onClick={() => setViewingPDF(pdfUrl)}
                   >
                     <Eye className="mr-2 h-4 w-4" />
-                    View PDF
+                    PDF {index + 1}
                   </Button>
-                )}
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -214,7 +226,7 @@ export default function Players() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the player "{deletingPlayer?.name}" and their PDF file.
+              This will permanently delete the player "{deletingPlayer?.name}" and all their PDF files.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

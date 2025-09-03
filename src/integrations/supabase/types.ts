@@ -343,7 +343,7 @@ export type Database = {
           created_by: string | null
           id: string
           name: string
-          pdf_url: string | null
+          pdf_urls: Json | null
           updated_at: string
         }
         Insert: {
@@ -351,7 +351,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
-          pdf_url?: string | null
+          pdf_urls?: Json | null
           updated_at?: string
         }
         Update: {
@@ -359,7 +359,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
-          pdf_url?: string | null
+          pdf_urls?: Json | null
           updated_at?: string
         }
         Relationships: []
