@@ -231,8 +231,8 @@ export default function Players() {
       </AlertDialog>
 
       <Dialog open={!!viewingPDF} onOpenChange={() => setViewingPDF(null)}>
-        <DialogContent className="max-w-7xl w-[95vw] h-[95vh] top-[2.5vh] translate-y-0">
-          <DialogHeader>
+        <DialogContent className="max-w-7xl w-[95vw] h-[95vh] top-[2.5vh] translate-y-0 flex flex-col p-0">
+          <DialogHeader className="px-6 py-4 border-b">
             <DialogTitle>PDF Viewer</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0">
