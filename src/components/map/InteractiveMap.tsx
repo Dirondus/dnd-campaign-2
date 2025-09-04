@@ -87,11 +87,27 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     }
   }, [containerDimensions])
 
-  // Allow free movement - no constraints
+  // Constrain movement to keep image within bounds
   const constrainPosition = useCallback((newX: number, newY: number, currentScale: number) => {
-    // No constraints - allow image to move freely in all directions
-    return { x: newX, y: newY }
-  }, [])
+    if (!imageDimensions.width || !imageDimensions.height || !containerDimensions.width || !containerDimensions.height) {
+      return { x: newX, y: newY }
+    }
+
+    const scaledWidth = imageDimensions.width * currentScale
+    const scaledHeight = imageDimensions.height * currentScale
+    
+    // Calculate constraints to keep at least 100px of image visible on each side
+    const minVisibleArea = 100
+    const maxX = containerDimensions.width - minVisibleArea
+    const minX = minVisibleArea - scaledWidth
+    const maxY = containerDimensions.height - minVisibleArea  
+    const minY = minVisibleArea - scaledHeight
+    
+    return {
+      x: Math.max(minX, Math.min(maxX, newX)),
+      y: Math.max(minY, Math.min(maxY, newY))
+    }
+  }, [imageDimensions, containerDimensions])
 
   // Handle wheel zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -107,12 +123,14 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const fitScale = calculateFitScale()
     const newScale = Math.max(fitScale * 0.1, Math.min(scale * delta, fitScale * 10)) // Much wider zoom range
 
-    // Calculate new position to zoom towards mouse (no constraints)
+    // Calculate new position to zoom towards mouse with constraints
     const newX = mouseX - (mouseX - position.x) * (newScale / scale)
     const newY = mouseY - (mouseY - position.y) * (newScale / scale)
     
+    const constrainedPosition = constrainPosition(newX, newY, newScale)
+    
     setScale(newScale)
-    setPosition({ x: newX, y: newY })
+    setPosition(constrainedPosition)
   }, [scale, position, calculateFitScale, constrainPosition])
 
   // Handle mouse events for dragging
@@ -133,8 +151,9 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const newX = dragStart.startX + (e.clientX - dragStart.x)
     const newY = dragStart.startY + (e.clientY - dragStart.y)
     
-    // Allow free movement without constraints
-    setPosition({ x: newX, y: newY })
+    // Apply constraints to keep image within bounds
+    const constrainedPosition = constrainPosition(newX, newY, scale)
+    setPosition(constrainedPosition)
   }, [isDragging, dragStart, scale, constrainPosition])
 
   const handleMouseUp = useCallback(() => {
@@ -146,28 +165,32 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     const fitScale = calculateFitScale()
     const newScale = Math.min(scale * 1.2, fitScale * 10)
     
-    // Zoom towards center
+    // Zoom towards center with constraints
     const centerX = containerDimensions.width / 2
     const centerY = containerDimensions.height / 2
     const newX = centerX - (centerX - position.x) * (newScale / scale)
     const newY = centerY - (centerY - position.y) * (newScale / scale)
     
+    const constrainedPosition = constrainPosition(newX, newY, newScale)
+    
     setScale(newScale)
-    setPosition({ x: newX, y: newY })
+    setPosition(constrainedPosition)
   }
 
   const handleZoomOut = () => {
     const fitScale = calculateFitScale()
     const newScale = Math.max(scale * 0.8, fitScale * 0.1)
     
-    // Zoom towards center
+    // Zoom towards center with constraints
     const centerX = containerDimensions.width / 2
     const centerY = containerDimensions.height / 2
     const newX = centerX - (centerX - position.x) * (newScale / scale)
     const newY = centerY - (centerY - position.y) * (newScale / scale)
     
+    const constrainedPosition = constrainPosition(newX, newY, newScale)
+    
     setScale(newScale)
-    setPosition({ x: newX, y: newY })
+    setPosition(constrainedPosition)
   }
 
   const handleResetView = () => {
