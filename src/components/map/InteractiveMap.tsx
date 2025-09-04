@@ -52,29 +52,29 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     return () => window.removeEventListener('resize', updateContainerSize)
   }, [])
 
-  // Calculate scale to fill container completely
+  // Calculate scale to fit container completely
   const calculateFitScale = useCallback(() => {
     if (!imageDimensions.width || !imageDimensions.height || !containerDimensions.width || !containerDimensions.height) {
       return 1
     }
 
-    // Use Math.max to ensure image covers entire container (may crop some parts)
+    // Use Math.min to ensure entire image fits within container
     const scaleX = containerDimensions.width / imageDimensions.width
     const scaleY = containerDimensions.height / imageDimensions.height
-    return Math.max(scaleX, scaleY) // Fill entire container
+    return Math.min(scaleX, scaleY) // Fit entire image within container
   }, [imageDimensions, containerDimensions])
 
-  // Handle image load with proper fitting to fill container
+  // Handle image load with proper fitting within container
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {
       const img = imageRef.current
       // Use actual image dimensions
       setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight })
       
-      // Calculate scale to fill entire container
+      // Calculate scale to fit entire image within container
       const scaleX = containerDimensions.width / img.naturalWidth
       const scaleY = containerDimensions.height / img.naturalHeight
-      const fitScale = Math.max(scaleX, scaleY) // Fill entire area
+      const fitScale = Math.min(scaleX, scaleY) // Fit entire image within container
       setScale(fitScale)
       
       // Center the image
@@ -195,10 +195,10 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
 
   const handleResetView = () => {
     if (imageDimensions.width && imageDimensions.height && containerDimensions.width && containerDimensions.height) {
-      // Reset to fill view
+      // Reset to fit entire image within view
       const scaleX = containerDimensions.width / imageDimensions.width
       const scaleY = containerDimensions.height / imageDimensions.height
-      const fitScale = Math.max(scaleX, scaleY)
+      const fitScale = Math.min(scaleX, scaleY)
       setScale(fitScale)
       
       // Center the image
@@ -304,7 +304,7 @@ export function InteractiveMap({ mapUrl, onMapUpload }: InteractiveMapProps) {
     if (currentMapUrl && imageDimensions.width && imageDimensions.height) {
       const scaleX = containerDimensions.width / imageDimensions.width
       const scaleY = containerDimensions.height / imageDimensions.height
-      const fitScale = Math.max(scaleX, scaleY) // Fill container
+      const fitScale = Math.min(scaleX, scaleY) // Fit entire image within container
       setScale(fitScale)
       
       // Center the image
