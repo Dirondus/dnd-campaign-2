@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { InteractiveMap } from "@/components/map/InteractiveMap"
+import { RegionsList } from "@/components/RegionsList"
+import { LocationsList } from "@/components/LocationsList"
 import { 
   Map, Plus, MapPin, Mountain, Trees, Waves, Crown, Swords, Upload, 
   Eye, EyeOff, Search, Filter, Settings, Globe, Compass, Star,
@@ -300,6 +302,8 @@ const WorldMap = () => {
                           setCurrentMapUrl(url)
                           toast.success("Map uploaded successfully!")
                         }}
+                        mapLayers={mapLayers}
+                        onToggleLayer={toggleLayer}
                       />
                     </div>
                   </CardContent>
@@ -380,136 +384,11 @@ const WorldMap = () => {
           </TabsContent>
 
           <TabsContent value="regions" className="space-y-6">
-            <div className="grid gap-6">
-              {filteredRegions.map((region) => (
-                <Card key={region.id} className={`bg-gradient-to-br ${region.color} backdrop-blur-sm border ${region.borderColor} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer`}
-                      onClick={() => setSelectedRegion(selectedRegion === region.id ? null : region.id)}>
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-3 bg-gradient-to-br from-card/80 to-card/60 rounded-xl border ${region.borderColor}`}>
-                          <region.icon className={`h-6 w-6 ${region.textColor}`} />
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl text-foreground">{region.name}</CardTitle>
-                          <CardDescription className="text-base">{region.type} • {region.ruler}</CardDescription>
-                        </div>
-                      </div>
-                      <Badge className={`${getThreatColor(region.threat_level)} bg-transparent border`}>
-                        <Shield className="h-3 w-3 mr-1" />
-                        {region.threat_level} Threat
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  
-                  {selectedRegion === region.id && (
-                    <CardContent className="pt-0 space-y-4 border-t border-border/30">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">Population</span>
-                            <p className="text-foreground">{region.population}</p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">Climate</span>
-                            <p className="text-foreground">{region.climate}</p>
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-muted-foreground">Economy</span>
-                            <p className="text-foreground">{region.economy}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            Recent Events
-                          </span>
-                          <p className="text-foreground mt-1">{region.recent_events}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
-            </div>
+            <RegionsList />
           </TabsContent>
-
+          
           <TabsContent value="locations" className="space-y-6">
-            <div className="grid gap-4">
-              {filteredPOIs.map((poi, index) => (
-                <Card key={index} className="bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-sm border-border/50 hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 space-y-3">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <h3 className="text-xl font-bold text-foreground">{poi.name}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {poi.type}
-                          </Badge>
-                          <Badge className={getDifficultyColor(poi.difficulty)}>
-                            {poi.difficulty}
-                          </Badge>
-                          <Badge variant={poi.discovered ? "default" : "secondary"} className="text-xs">
-                            {poi.discovered ? "Discovered" : "Hidden"}
-                          </Badge>
-                        </div>
-                        
-                        <p className="text-muted-foreground">{poi.description}</p>
-                        
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-foreground">Recommended Level:</span>
-                            <span className="ml-2 text-accent">{poi.recommended_level}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-foreground">Last Expedition:</span>
-                            <span className="ml-2 text-muted-foreground">{poi.last_expedition || "Never"}</span>
-                          </div>
-                        </div>
-
-                        {viewMode === "detailed" && (
-                          <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-border/30">
-                            <div>
-                              <h4 className="font-medium text-green-400 mb-2 flex items-center gap-2">
-                                <Star className="h-4 w-4" />
-                                Potential Rewards
-                              </h4>
-                              <ul className="space-y-1 text-sm text-muted-foreground">
-                                {poi.rewards.map((reward, i) => (
-                                  <li key={i}>• {reward}</li>
-                                ))}
-                              </ul>
-                            </div>
-                            <div>
-                              <h4 className="font-medium text-red-400 mb-2 flex items-center gap-2">
-                                <Zap className="h-4 w-4" />
-                                Known Dangers
-                              </h4>
-                              <ul className="space-y-1 text-sm text-muted-foreground">
-                                {poi.dangers.map((danger, i) => (
-                                  <li key={i}>• {danger}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex flex-col gap-2">
-                        <Button variant="outline" size="sm" className="border-accent/30 text-accent hover:bg-accent/10">
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </Button>
-                        <Button variant="outline" size="sm" className="border-border/50">
-                          <MapPin className="h-4 w-4 mr-2" />
-                          Locate
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <LocationsList />
           </TabsContent>
 
           <TabsContent value="overview" className="space-y-6">

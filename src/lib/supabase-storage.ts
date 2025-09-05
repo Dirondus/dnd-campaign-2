@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 
-type TableName = 'groups' | 'lore_entries' | 'npcs' | 'monsters' | 'sessions' | 'players'
+type TableName = 'groups' | 'lore_entries' | 'npcs' | 'monsters' | 'sessions' | 'players' | 'waypoints' | 'regions' | 'locations'
 
 export const saveToSupabase = async (table: TableName, data: any) => {
   try {
@@ -60,7 +60,7 @@ export const deleteFromSupabase = async (table: TableName, id: string) => {
   }
 }
 
-export const loadFromSupabase = async (table: TableName) => {
+export const loadFromSupabase = async <T = any>(table: TableName): Promise<T[]> => {
   try {
     const { data, error } = await supabase
       .from(table)
@@ -68,7 +68,7 @@ export const loadFromSupabase = async (table: TableName) => {
       .order('created_at', { ascending: false })
     
     if (error) throw error
-    return data || []
+    return (data || []) as T[]
   } catch (error) {
     console.error('Failed to load from Supabase:', error)
     return []

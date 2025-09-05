@@ -50,6 +50,56 @@ export type Database = {
         }
         Relationships: []
       }
+      locations: {
+        Row: {
+          background: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          key_details: string | null
+          name: string
+          region_id: string | null
+          tags: string[] | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          background?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key_details?: string | null
+          name: string
+          region_id?: string | null
+          tags?: string[] | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          background?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          key_details?: string | null
+          name?: string
+          region_id?: string | null
+          tags?: string[] | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lore_entries: {
         Row: {
           category: string
@@ -388,6 +438,45 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string
+        }
+        Relationships: []
+      }
+      regions: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          history: string | null
+          id: string
+          name: string
+          notable_features: string | null
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          history?: string | null
+          id?: string
+          name: string
+          notable_features?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          history?: string | null
+          id?: string
+          name?: string
+          notable_features?: string | null
+          tags?: string[] | null
+          updated_at?: string
         }
         Relationships: []
       }
