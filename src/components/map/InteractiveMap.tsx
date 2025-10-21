@@ -48,6 +48,7 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
     loadWaypoints()
@@ -102,13 +103,34 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
   }, [position, isAddingWaypoint])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return
+    if (!isDragging || !containerRef.current || !imageRef.current) return
     
-    const newX = dragStart.startX + (e.clientX - dragStart.x)
-    const newY = dragStart.startY + (e.clientY - dragStart.y)
+    const container = containerRef.current.getBoundingClientRect()
+    const imgNaturalWidth = imageRef.current.naturalWidth
+    const imgNaturalHeight = imageRef.current.naturalHeight
+    
+    // Calculate scaled map dimensions
+    const mapWidth = imgNaturalWidth * scale
+    const mapHeight = imgNaturalHeight * scale
+    
+    // Calculate raw new position
+    let newX = dragStart.startX + (e.clientX - dragStart.x)
+    let newY = dragStart.startY + (e.clientY - dragStart.y)
+    
+    // Calculate boundaries
+    // When map is larger than container, clamp so edges can't go past container edges
+    // When map is smaller, center it or allow minimal movement
+    const minX = mapWidth > container.width ? container.width - mapWidth : (container.width - mapWidth) / 2
+    const maxX = mapWidth > container.width ? 0 : (container.width - mapWidth) / 2
+    const minY = mapHeight > container.height ? container.height - mapHeight : (container.height - mapHeight) / 2
+    const maxY = mapHeight > container.height ? 0 : (container.height - mapHeight) / 2
+    
+    // Clamp position to boundaries
+    newX = Math.max(minX, Math.min(maxX, newX))
+    newY = Math.max(minY, Math.min(maxY, newY))
     
     setPosition({ x: newX, y: newY })
-  }, [isDragging, dragStart])
+  }, [isDragging, dragStart, scale])
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
@@ -246,6 +268,7 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
       />
       
       <img
+        ref={imageRef}
         src={currentMapUrl}
         alt="Campaign Map"
         className="w-full h-full object-contain select-none pointer-events-none"
