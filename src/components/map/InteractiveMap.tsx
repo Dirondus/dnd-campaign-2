@@ -63,26 +63,15 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
     }
   }
 
-  // Handle zoom with mouse wheel
+  // Handle zoom with mouse wheel - zoom in place
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-
-    const mouseX = e.clientX - rect.left
-    const mouseY = e.clientY - rect.top
-
     const delta = e.deltaY > 0 ? 0.9 : 1.1
-    const newScale = Math.max(0.1, Math.min(scale * delta, 5))
-
-    // Calculate new position to zoom towards mouse
-    const newX = mouseX - (mouseX - position.x) * (newScale / scale)
-    const newY = mouseY - (mouseY - position.y) * (newScale / scale)
+    const newScale = Math.max(0.5, Math.min(scale * delta, 5))
     
     setScale(newScale)
-    setPosition({ x: newX, y: newY })
-  }, [scale, position])
+  }, [scale])
 
   // Handle mouse events for dragging
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -105,6 +94,9 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging || !containerRef.current || !imageRef.current) return
     
+    // Only allow panning when zoomed in
+    if (scale <= 1) return
+    
     const container = containerRef.current.getBoundingClientRect()
     const imgNaturalWidth = imageRef.current.naturalWidth
     const imgNaturalHeight = imageRef.current.naturalHeight
@@ -117,13 +109,11 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
     let newX = dragStart.startX + (e.clientX - dragStart.x)
     let newY = dragStart.startY + (e.clientY - dragStart.y)
     
-    // Calculate boundaries
-    // When map is larger than container, clamp so edges can't go past container edges
-    // When map is smaller, center it or allow minimal movement
-    const minX = mapWidth > container.width ? container.width - mapWidth : (container.width - mapWidth) / 2
-    const maxX = mapWidth > container.width ? 0 : (container.width - mapWidth) / 2
-    const minY = mapHeight > container.height ? container.height - mapHeight : (container.height - mapHeight) / 2
-    const maxY = mapHeight > container.height ? 0 : (container.height - mapHeight) / 2
+    // Calculate boundaries - keep map edges within container
+    const minX = container.width - mapWidth
+    const maxX = 0
+    const minY = container.height - mapHeight
+    const maxY = 0
     
     // Clamp position to boundaries
     newX = Math.max(minX, Math.min(maxX, newX))
@@ -136,14 +126,14 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
     setIsDragging(false)
   }, [])
 
-  // Zoom control functions
+  // Zoom control functions - zoom in place
   const handleZoomIn = () => {
     const newScale = Math.min(scale * 1.2, 5)
     setScale(newScale)
   }
 
   const handleZoomOut = () => {
-    const newScale = Math.max(scale * 0.8, 0.1)
+    const newScale = Math.max(scale * 0.8, 0.5)
     setScale(newScale)
   }
 
@@ -273,8 +263,8 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
         alt="Campaign Map"
         className="w-full h-full object-contain select-none pointer-events-none"
         style={{
-          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-          transformOrigin: 'center center',
+          transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
+          transformOrigin: 'top left',
           transition: isDragging ? 'none' : 'transform 0.1s ease-out'
         }}
         draggable={false}
