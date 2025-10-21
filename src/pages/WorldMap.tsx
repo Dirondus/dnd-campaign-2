@@ -10,7 +10,7 @@ import { LocationsList } from "@/components/LocationsList"
 import { 
   Map, Plus, MapPin, Mountain, Trees, Waves, Crown, Swords, Upload, 
   Eye, EyeOff, Search, Filter, Settings, Globe, Compass, Star,
-  Calendar, Users, Shield, Zap
+  Calendar, Users, Shield, Zap, Castle, Home, Skull, Landmark
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -21,14 +21,18 @@ const WorldMap = () => {
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"overview" | "detailed">("overview")
 
-  // Enhanced map layers with more interactivity
+  // Map layers matching waypoint categories
   const [mapLayers, setMapLayers] = useState([
-    { id: "political", name: "Political Boundaries", active: true, icon: Crown, color: "text-red-400" },
-    { id: "terrain", name: "Terrain Features", active: true, icon: Mountain, color: "text-green-400" },
-    { id: "settlements", name: "Cities & Towns", active: true, icon: MapPin, color: "text-blue-400" },
-    { id: "routes", name: "Roads & Routes", active: false, icon: Compass, color: "text-yellow-400" },
-    { id: "dungeons", name: "Dungeons & POIs", active: true, icon: Swords, color: "text-purple-400" },
-    { id: "players", name: "Player Locations", active: true, icon: Users, color: "text-accent" },
+    { id: "kingdom", name: "Kingdoms", active: true, icon: Castle, color: "text-blue-400" },
+    { id: "city", name: "Cities & Towns", active: true, icon: Home, color: "text-yellow-400" },
+    { id: "capital", name: "Capitals", active: true, icon: Crown, color: "text-purple-400" },
+    { id: "forest", name: "Forests", active: true, icon: Trees, color: "text-green-400" },
+    { id: "mountain", name: "Mountains", active: true, icon: Mountain, color: "text-gray-400" },
+    { id: "water", name: "Water Bodies", active: true, icon: Waves, color: "text-cyan-400" },
+    { id: "dungeon", name: "Dungeons", active: true, icon: Swords, color: "text-red-400" },
+    { id: "ruins", name: "Ruins", active: true, icon: Skull, color: "text-orange-400" },
+    { id: "landmark", name: "Landmarks", active: true, icon: Landmark, color: "text-pink-400" },
+    { id: "location", name: "Other Locations", active: true, icon: MapPin, color: "text-accent" },
   ])
 
   // Enhanced regions with more depth
