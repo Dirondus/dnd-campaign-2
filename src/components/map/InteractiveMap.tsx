@@ -184,16 +184,36 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
 
     try {
       // Check if user is authenticated
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('Current session:', session)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      if (!session) {
+      if (sessionError || !session?.user) {
+        console.error('Session error:', sessionError)
         toast.error('You must be logged in to create waypoints')
         return
       }
 
-      console.log('Creating waypoint:', newWaypoint)
-      const waypointData = await saveToSupabase('waypoints', newWaypoint)
+      console.log('User authenticated:', session.user.id)
+      console.log('Creating waypoint with data:', newWaypoint)
+
+      // Insert directly using supabase client
+      const { data: waypointData, error: insertError } = await supabase
+        .from('waypoints')
+        .insert({
+          title: newWaypoint.title,
+          description: newWaypoint.description,
+          category: newWaypoint.category,
+          x_position: newWaypoint.x_position,
+          y_position: newWaypoint.y_position,
+          created_by: session.user.id
+        })
+        .select()
+        .single()
+      
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        throw new Error(insertError.message)
+      }
+
       console.log('Waypoint created successfully:', waypointData)
       
       setWaypoints(prev => [...prev, waypointData as Waypoint])
@@ -202,7 +222,6 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
       toast.success('Waypoint created!')
     } catch (error: any) {
       console.error('Failed to create waypoint:', error)
-      console.error('Error details:', error.message, error.details)
       toast.error(`Failed to create waypoint: ${error.message || 'Unknown error'}`)
     }
   }
