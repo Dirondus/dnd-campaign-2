@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { WaypointIcon, waypointCategories } from './WaypointIconSelector'
 import { loadFromSupabase, saveToSupabase, deleteFromSupabase } from '@/lib/supabase-storage'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 
 interface Waypoint {
@@ -182,14 +183,27 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
     }
 
     try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('Current session:', session)
+      
+      if (!session) {
+        toast.error('You must be logged in to create waypoints')
+        return
+      }
+
+      console.log('Creating waypoint:', newWaypoint)
       const waypointData = await saveToSupabase('waypoints', newWaypoint)
+      console.log('Waypoint created successfully:', waypointData)
+      
       setWaypoints(prev => [...prev, waypointData as Waypoint])
       setShowWaypointDialog(false)
       setNewWaypoint({ title: '', description: '', category: 'location', x_position: 0, y_position: 0 })
       toast.success('Waypoint created!')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create waypoint:', error)
-      toast.error('Failed to create waypoint')
+      console.error('Error details:', error.message, error.details)
+      toast.error(`Failed to create waypoint: ${error.message || 'Unknown error'}`)
     }
   }
 

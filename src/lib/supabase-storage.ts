@@ -5,6 +5,8 @@ type TableName = 'groups' | 'lore_entries' | 'npcs' | 'monsters' | 'sessions' | 
 export const saveToSupabase = async (table: TableName, data: any) => {
   try {
     const user = await getCurrentUser()
+    console.log('Current user from saveToSupabase:', user)
+    
     if (!user) {
       throw new Error('You must be logged in to create entries')
     }
@@ -14,15 +16,21 @@ export const saveToSupabase = async (table: TableName, data: any) => {
       created_by: user.id
     }
 
+    console.log('Inserting data:', dataWithUser)
+
     const { data: result, error } = await supabase
       .from(table)
       .insert(dataWithUser)
       .select()
       .single()
     
-    if (error) throw error
+    if (error) {
+      console.error('Supabase insert error:', error)
+      throw new Error(error.message || 'Failed to save data')
+    }
+    
     return result
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to save to Supabase:', error)
     throw error
   }
