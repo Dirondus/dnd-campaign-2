@@ -569,13 +569,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "waypoints_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "waypoints_map_id_fkey"
             columns: ["map_id"]
             isOneToOne: false
