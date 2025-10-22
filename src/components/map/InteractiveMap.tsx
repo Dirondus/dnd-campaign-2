@@ -315,7 +315,7 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
             style={{
               left: `${waypoint.x_position}%`,
               top: `${waypoint.y_position}%`,
-              transform: 'translate(-50%, -50%)'
+              transform: `translate(-50%, -50%) scale(${1 / scale})`
             }}
             onClick={(e) => handleWaypointClick(waypoint, e)}
           >
