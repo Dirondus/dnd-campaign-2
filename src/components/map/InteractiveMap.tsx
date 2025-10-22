@@ -290,36 +290,41 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
         className="hidden"
       />
       
-      <img
-        ref={imageRef}
-        src={currentMapUrl}
-        alt="Campaign Map"
-        className="w-full h-full object-contain select-none pointer-events-none"
+      {/* Wrapper for map and waypoints that transforms together */}
+      <div
+        className="w-full h-full relative"
         style={{
           transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
           transformOrigin: 'top left',
           transition: isDragging ? 'none' : 'transform 0.1s ease-out'
         }}
-        draggable={false}
-      />
-      
-      {/* Render waypoints */}
-      {visibleWaypoints.map((waypoint) => (
-        <div
-          key={waypoint.id}
-          className="absolute z-20 cursor-pointer transform -translate-x-1/2 -translate-y-1/2"
-          style={{
-            left: `${waypoint.x_position}%`,
-            top: `${waypoint.y_position}%`,
-            transform: `translate(-50%, -50%) scale(${Math.max(0.5, Math.min(2, scale))})`
-          }}
-          onClick={(e) => handleWaypointClick(waypoint, e)}
-        >
-          <div className="bg-background/90 border border-border rounded-full p-2 shadow-lg hover:bg-background transition-colors">
-            <WaypointIcon category={waypoint.category} size={20} />
+      >
+        <img
+          ref={imageRef}
+          src={currentMapUrl}
+          alt="Campaign Map"
+          className="w-full h-full object-contain select-none pointer-events-none"
+          draggable={false}
+        />
+        
+        {/* Render waypoints */}
+        {visibleWaypoints.map((waypoint) => (
+          <div
+            key={waypoint.id}
+            className="absolute z-20 cursor-pointer"
+            style={{
+              left: `${waypoint.x_position}%`,
+              top: `${waypoint.y_position}%`,
+              transform: 'translate(-50%, -50%)'
+            }}
+            onClick={(e) => handleWaypointClick(waypoint, e)}
+          >
+            <div className="bg-background/90 border border-border rounded-full p-2 shadow-lg hover:bg-background transition-colors">
+              <WaypointIcon category={waypoint.category} size={20} />
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       
       {/* Control buttons */}
       <div className="absolute top-2 left-2 flex flex-col gap-2 z-30">
