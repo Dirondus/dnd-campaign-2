@@ -13,23 +13,86 @@ import {
   Calendar, Users, Shield, Zap, Castle, Home, Skull, Landmark
 } from "lucide-react"
 import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
 
 const WorldMap = () => {
-  const [currentMapUrl, setCurrentMapUrl] = useState<string | undefined>(() => {
-    const saved = localStorage.getItem('world-map-url')
-    return saved || undefined
-  })
+  const [currentMapUrl, setCurrentMapUrl] = useState<string | undefined>(undefined)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"overview" | "detailed">("overview")
+  const [isUploadingMap, setIsUploadingMap] = useState(false)
 
-  // Save map URL to localStorage whenever it changes
+  // Load active map from database on mount
   useEffect(() => {
-    if (currentMapUrl) {
-      localStorage.setItem('world-map-url', currentMapUrl)
+    loadActiveMap()
+  }, [])
+
+  const loadActiveMap = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('maps')
+        .select('*')
+        .eq('is_active', true)
+        .single()
+      
+      if (error && error.code !== 'PGRST116') { // Ignore "not found" error
+        console.error('Failed to load active map:', error)
+        return
+      }
+      
+      if (data) {
+        setCurrentMapUrl(data.image_url)
+      }
+    } catch (error) {
+      console.error('Failed to load active map:', error)
     }
-  }, [currentMapUrl])
+  }
+
+  const handleMapUpload = async (file: File) => {
+    setIsUploadingMap(true)
+    try {
+      // Upload to Supabase storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}.${fileExt}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('maps')
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('maps')
+        .getPublicUrl(fileName)
+
+      // Deactivate all existing maps
+      await supabase
+        .from('maps')
+        .update({ is_active: false })
+        .eq('is_active', true)
+
+      // Save map metadata to database
+      const { error: insertError } = await supabase
+        .from('maps')
+        .insert({
+          title: file.name,
+          image_url: publicUrl,
+          is_active: true,
+          description: 'World map'
+        })
+
+      if (insertError) throw insertError
+
+      setCurrentMapUrl(publicUrl)
+      toast.success("Map uploaded and saved successfully!")
+    } catch (error: any) {
+      console.error('Failed to upload map:', error)
+      toast.error(`Failed to upload map: ${error.message}`)
+    } finally {
+      setIsUploadingMap(false)
+    }
+  }
 
   // Map layers matching waypoint categories
   const [mapLayers, setMapLayers] = useState([
@@ -311,11 +374,7 @@ const WorldMap = () => {
                     <div className="aspect-video bg-gradient-to-br from-muted/20 to-muted/10 rounded-lg border border-border/50">
                       <InteractiveMap 
                         mapUrl={currentMapUrl} 
-                        onMapUpload={(file) => {
-                          const url = URL.createObjectURL(file)
-                          setCurrentMapUrl(url)
-                          toast.success("Map uploaded successfully!")
-                        }}
+                        onMapUpload={handleMapUpload}
                         mapLayers={mapLayers}
                         onToggleLayer={toggleLayer}
                       />
