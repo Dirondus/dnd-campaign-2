@@ -72,6 +72,10 @@ const WorldMap = () => {
         .update({ is_active: false })
         .eq('is_active', true)
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('You must be logged in to upload maps')
+
       // Save map metadata to database
       const { error: insertError } = await supabase
         .from('maps')
@@ -79,7 +83,8 @@ const WorldMap = () => {
           title: file.name,
           image_url: publicUrl,
           is_active: true,
-          description: 'World map'
+          description: 'World map',
+          created_by: user.id
         })
 
       if (insertError) throw insertError
