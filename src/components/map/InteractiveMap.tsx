@@ -55,6 +55,13 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
     loadWaypoints()
   }, [])
 
+  // Sync with parent's mapUrl prop
+  useEffect(() => {
+    if (mapUrl) {
+      setCurrentMapUrl(mapUrl)
+    }
+  }, [mapUrl])
+
   const loadWaypoints = async () => {
     try {
       const waypointsData = await loadFromSupabase<Waypoint>('waypoints')
@@ -147,8 +154,6 @@ export function InteractiveMap({ mapUrl, onMapUpload, mapLayers, onToggleLayer }
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file)
-      setCurrentMapUrl(url)
       // Reset view when new image is uploaded
       setScale(1)
       setPosition({ x: 0, y: 0 })
