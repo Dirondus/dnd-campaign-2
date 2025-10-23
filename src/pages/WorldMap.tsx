@@ -15,11 +15,21 @@ import {
 import { toast } from "sonner"
 
 const WorldMap = () => {
-  const [currentMapUrl, setCurrentMapUrl] = useState<string | undefined>(undefined)
+  const [currentMapUrl, setCurrentMapUrl] = useState<string | undefined>(() => {
+    const saved = localStorage.getItem('world-map-url')
+    return saved || undefined
+  })
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"overview" | "detailed">("overview")
+
+  // Save map URL to localStorage whenever it changes
+  useEffect(() => {
+    if (currentMapUrl) {
+      localStorage.setItem('world-map-url', currentMapUrl)
+    }
+  }, [currentMapUrl])
 
   // Map layers matching waypoint categories
   const [mapLayers, setMapLayers] = useState([

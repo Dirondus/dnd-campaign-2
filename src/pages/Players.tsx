@@ -269,15 +269,22 @@ export default function Players() {
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-2">
                 {player.pdf_urls && player.pdf_urls.map((pdfObj, index) => (
-                  <Button
+                  <a
                     key={index}
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setViewingPDF(pdfObj.url)}
+                    href={pdfObj.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && e.button === 0) {
+                        e.preventDefault()
+                        setViewingPDF(pdfObj.url)
+                      }
+                    }}
                   >
                     <Eye className="mr-2 h-4 w-4" />
                     {pdfObj.name}
-                  </Button>
+                  </a>
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
