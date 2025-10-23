@@ -52,14 +52,23 @@ const WorldMap = () => {
   const handleMapUpload = async (file: File) => {
     setIsUploadingMap(true)
     try {
+      console.log('Starting map upload...')
+      
+      // Get current user first
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      console.log('Current user:', user?.id, 'Error:', userError)
+      if (!user) throw new Error('You must be logged in to upload maps')
+      
       // Upload to Supabase storage
       const fileExt = file.name.split('.').pop()
       const fileName = `${Date.now()}.${fileExt}`
+      console.log('Uploading file:', fileName)
       
       const { error: uploadError } = await supabase.storage
         .from('maps')
         .upload(fileName, file)
 
+      console.log('Upload error:', uploadError)
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage
@@ -71,10 +80,6 @@ const WorldMap = () => {
         .from('maps')
         .update({ is_active: false })
         .eq('is_active', true)
-
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('You must be logged in to upload maps')
 
       // Save map metadata to database
       const { error: insertError } = await supabase
